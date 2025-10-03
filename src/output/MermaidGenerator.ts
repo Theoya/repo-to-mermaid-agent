@@ -23,7 +23,8 @@ export class MermaidGenerator {
    */
   async processBuckets(
     buckets: ProcessingBucket[],
-    existingMermaid?: string
+    existingMermaid?: string,
+    skippedFiles?: Array<{ path: string; size: number; reason: string }>
   ): Promise<ProcessingState> {
     const state: ProcessingState = {
       current_bucket_index: 0,
@@ -76,8 +77,11 @@ export class MermaidGenerator {
   /**
    * Generate final Mermaid file
    */
-  async generateFinalMermaidFile(state: ProcessingState): Promise<string> {
-    const content = this.buildFinalMermaidContent(state);
+  async generateFinalMermaidFile(
+    state: ProcessingState,
+    skippedFiles?: Array<{ path: string; size: number; reason: string }>
+  ): Promise<string> {
+    const content = this.buildFinalMermaidContent(state, skippedFiles);
     await this.writeMermaidFile(content);
     return content;
   }
@@ -85,7 +89,10 @@ export class MermaidGenerator {
   /**
    * Build final Mermaid content
    */
-  private buildFinalMermaidContent(state: ProcessingState): string {
+  private buildFinalMermaidContent(
+    state: ProcessingState,
+    skippedFiles?: Array<{ path: string; size: number; reason: string }>
+  ): string {
     let content = '';
 
     if (this.includeSummary && state.accumulated_summary) {
@@ -97,6 +104,14 @@ export class MermaidGenerator {
       content += `- Total files processed: ${state.processed_files}\n`;
       content += `- Total buckets: ${state.total_buckets}\n`;
       content += `- Generated on: ${new Date().toISOString()}\n`;
+      
+      if (skippedFiles && skippedFiles.length > 0) {
+        content += `\nSkipped Files (${skippedFiles.length}):\n`;
+        for (const skipped of skippedFiles) {
+          content += `- ${skipped.path} (${skipped.size} bytes): ${skipped.reason}\n`;
+        }
+      }
+      
       content += `-->\n\n`;
     }
 

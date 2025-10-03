@@ -5,11 +5,14 @@ export class BucketManager {
   private tokenCalculator: TokenCalculator;
   private maxTokensPerBucket: number;
   private tokenThreshold: number; // Percentage of max tokens to trigger bucket processing
+  private hardLimit: number; // Hard limit per bucket (100k tokens)
+  private skippedFiles: Array<{ path: string; size: number; reason: string }> = [];
 
   constructor(maxTokensPerBucket: number, tokenThreshold: number = 0.9) {
     this.tokenCalculator = new TokenCalculator();
     this.maxTokensPerBucket = maxTokensPerBucket;
     this.tokenThreshold = tokenThreshold;
+    this.hardLimit = 100000; // 100k token hard limit
   }
 
   /**
@@ -26,8 +29,27 @@ export class BucketManager {
     for (const file of sortedFiles) {
       const fileTokens = this.tokenCalculator.calculateFileTokens(file);
       
-      // Check if adding this file would exceed the threshold
-      if (currentTokenCount + fileTokens > this.maxTokensPerBucket * this.tokenThreshold && currentBucket.length > 0) {
+      // Skip files that exceed the hard limit (100k tokens)
+      if (fileTokens > this.hardLimit) {
+        this.skippedFiles.push({
+          path: file.path,
+          size: file.size,
+          reason: `File exceeds hard limit of ${this.hardLimit} tokens (estimated: ${fileTokens} tokens)`
+        });
+        console.warn(`Skipping file ${file.path}: ${fileTokens} tokens exceeds hard limit of ${this.hardLimit}`);
+        continue;
+      }
+      
+      // Check if adding this file would exceed the hard limit
+      if (currentTokenCount + fileTokens > this.hardLimit && currentBucket.length > 0) {
+        // Create bucket with current files
+        buckets.push(this.createBucket(currentBucket, currentTokenCount));
+        
+        // Start new bucket
+        currentBucket = [file];
+        currentTokenCount = fileTokens;
+      } else if (currentTokenCount + fileTokens > this.maxTokensPerBucket * this.tokenThreshold && currentBucket.length > 0) {
+        // Check if adding this file would exceed the threshold
         // Create bucket with current files
         buckets.push(this.createBucket(currentBucket, currentTokenCount));
         
@@ -242,5 +264,34 @@ export class BucketManager {
     optimized.push(...underutilized);
 
     return optimized;
+  }
+
+  /**
+   * Get information about skipped files
+   */
+  getSkippedFiles(): Array<{ path: string; size: number; reason: string }> {
+    return [...this.skippedFiles];
+  }
+
+  /**
+   * Get summary of skipped files
+   */
+  getSkippedFilesSummary(): string {
+    if (this.skippedFiles.length === 0) {
+      return 'No files were skipped.';
+    }
+
+    let summary = `Skipped ${this.skippedFiles.length} file(s):\n`;
+    for (const skipped of this.skippedFiles) {
+      summary += `- ${skipped.path} (${skipped.size} bytes): ${skipped.reason}\n`;
+    }
+    return summary;
+  }
+
+  /**
+   * Clear skipped files list
+   */
+  clearSkippedFiles(): void {
+    this.skippedFiles = [];
   }
 }

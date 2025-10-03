@@ -45,7 +45,7 @@ mermaid-gen --output "docs/architecture.mermaid" --llm-api-key YOUR_OPENAI_API_K
 mermaid-gen [options] [directory]
 
 Options:
-  -t, --token-limit <number>     Token limit per processing batch (default: 8000)
+  -t, --token-limit <number>     Token limit per processing batch (default: 60000)
   -f, --file-types <types>       Comma-separated file extensions (default: auto-detect)
   -o, --output <path>            Output file path (default: repo.mermaid)
   -c, --config <path>            Configuration file path (default: config.yml)
@@ -91,7 +91,7 @@ exclude_patterns:
 llm:
   provider: "openai"
   model: "gpt-4"
-  max_tokens: 8000
+  max_tokens: 60000
   temperature: 0.1
 
 output:
@@ -167,7 +167,7 @@ jobs:
       - name: Generate Mermaid diagram
         run: |
           npx mermaid-codebase-generator@latest \
-            --token-limit 8000 \
+            --token-limit 60000 \
             --file-types "cs,py,js,ts,jsx,tsx" \
             --output "repo.mermaid" \
             --llm-provider "openai" \
@@ -246,7 +246,7 @@ mermaid-gen --file-types "ts,js,json" --output "docs/architecture.mermaid"
 
 ### Large C# Solution
 ```bash
-mermaid-gen --file-types "cs,csproj,sln" --token-limit 12000 --output "docs/solution-architecture.mermaid"
+mermaid-gen --file-types "cs,csproj,sln" --token-limit 60000 --output "docs/solution-architecture.mermaid"
 ```
 
 ### Python Microservices
