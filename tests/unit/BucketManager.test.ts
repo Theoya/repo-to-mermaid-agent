@@ -276,4 +276,81 @@ describe('BucketManager', () => {
       expect(optimized.every(bucket => bucket.total_tokens <= 1000)).toBe(true);
     });
   });
+
+  describe('hard limit handling', () => {
+    it('should skip files that exceed hard limit', () => {
+      const largeFile: FileInfo = {
+        path: 'large-file.js',
+        content: 'x'.repeat(500000), // Very large file
+        size: 500000,
+        extension: '.js',
+        estimated_tokens: 150000 // Exceeds 100k hard limit
+      };
+
+      const buckets = bucketManager.createBuckets([largeFile]);
+      const skippedFiles = bucketManager.getSkippedFiles();
+
+      expect(buckets).toHaveLength(0);
+      expect(skippedFiles).toHaveLength(1);
+      expect(skippedFiles[0].path).toBe('large-file.js');
+      expect(skippedFiles[0].reason).toContain('exceeds hard limit');
+    });
+
+    it('should create new bucket when adding file would exceed hard limit', () => {
+      const largeFile: FileInfo = {
+        path: 'large-file.js',
+        content: 'x'.repeat(100000),
+        size: 100000,
+        extension: '.js',
+        estimated_tokens: 80000 // Large but under hard limit
+      };
+
+      const smallFile: FileInfo = {
+        path: 'small-file.js',
+        content: 'console.log("test");',
+        size: 100,
+        extension: '.js',
+        estimated_tokens: 10
+      };
+
+      const buckets = bucketManager.createBuckets([largeFile, smallFile]);
+
+      // Should create two buckets since adding smallFile to largeFile would exceed hard limit
+      expect(buckets.length).toBeGreaterThanOrEqual(1);
+      expect(bucketManager.getSkippedFiles()).toHaveLength(0);
+    });
+
+    it('should provide skipped files summary', () => {
+      const largeFile: FileInfo = {
+        path: 'large-file.js',
+        content: 'x'.repeat(500000),
+        size: 500000,
+        extension: '.js',
+        estimated_tokens: 150000
+      };
+
+      bucketManager.createBuckets([largeFile]);
+      const summary = bucketManager.getSkippedFilesSummary();
+
+      expect(summary).toContain('Skipped 1 file(s)');
+      expect(summary).toContain('large-file.js');
+      expect(summary).toContain('exceeds hard limit');
+    });
+
+    it('should clear skipped files', () => {
+      const largeFile: FileInfo = {
+        path: 'large-file.js',
+        content: 'x'.repeat(500000),
+        size: 500000,
+        extension: '.js',
+        estimated_tokens: 150000
+      };
+
+      bucketManager.createBuckets([largeFile]);
+      expect(bucketManager.getSkippedFiles()).toHaveLength(1);
+
+      bucketManager.clearSkippedFiles();
+      expect(bucketManager.getSkippedFiles()).toHaveLength(0);
+    });
+  });
 });

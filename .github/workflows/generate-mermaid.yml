@@ -17,7 +17,7 @@ on:
       token_limit:
         description: 'Token limit per processing batch'
         required: false
-        default: '8000'
+        default: '60000'
       llm_model:
         description: 'LLM model to use'
         required: false
@@ -45,7 +45,7 @@ jobs:
       - name: Generate Mermaid Diagram
         run: |
           mermaid-gen \
-            --token-limit ${{ github.event.inputs.token_limit || '8000' }} \
+            --token-limit ${{ github.event.inputs.token_limit || '60000' }} \
             --file-types "${{ github.event.inputs.file_types || 'cs,py,js,ts,jsx,tsx' }}" \
             --output "repo.mermaid" \
             --llm-provider "openai" \
@@ -92,7 +92,7 @@ jobs:
         run: |
           # Generate diagram for PR
           mermaid-gen \
-            --token-limit ${{ github.event.inputs.token_limit || '8000' }} \
+            --token-limit ${{ github.event.inputs.token_limit || '60000' }} \
             --file-types "${{ github.event.inputs.file_types || 'cs,py,js,ts,jsx,tsx' }}" \
             --output "pr-mermaid.mermaid" \
             --llm-provider "openai" \

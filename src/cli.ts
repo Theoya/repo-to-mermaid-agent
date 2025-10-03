@@ -20,7 +20,7 @@ program
   .version('1.0.0');
 
 program
-  .option('-t, --token-limit <number>', 'Token limit per processing batch', '8000')
+  .option('-t, --token-limit <number>', 'Token limit per processing batch', '60000')
   .option('-f, --file-types <types>', 'Comma-separated list of file extensions', '')
   .option('-o, --output <path>', 'Output file path', 'repo.mermaid')
   .option('-c, --config <path>', 'Configuration file path', 'config.yml')
@@ -52,7 +52,7 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
   try {
     // Parse CLI arguments
     const args: CLIArgs = {
-      tokenLimit: parseInt(options.tokenLimit) || 8000,
+      tokenLimit: parseInt(options.tokenLimit) || 60000,
       fileTypes: options.fileTypes ? options.fileTypes.split(',').map((t: string) => t.trim()) : [],
       outputPath: options.output,
       configPath: options.config,
@@ -139,6 +139,13 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
     console.log(`  Average tokens per bucket: ${Math.round(stats.averageTokensPerBucket)}`);
     console.log(`  Utilization rate: ${Math.round(stats.utilizationRate)}%`);
 
+    // Show skipped files information
+    const skippedFiles = bucketManager.getSkippedFiles();
+    if (skippedFiles.length > 0) {
+      console.log(chalk.yellow('\nSkipped Files:'));
+      console.log(bucketManager.getSkippedFilesSummary());
+    }
+
     if (args.dryRun) {
       console.log(chalk.yellow('Dry run mode - no changes will be made'));
       return;
@@ -157,11 +164,11 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
 
     // Process buckets
     spinner.text = 'Processing buckets...';
-    const state = await mermaidGenerator.processBuckets(buckets, existingMermaid);
+    const state = await mermaidGenerator.processBuckets(buckets, existingMermaid, skippedFiles);
 
     // Generate final Mermaid file
     spinner.text = 'Generating final Mermaid file...';
-    const finalContent = await mermaidGenerator.generateFinalMermaidFile(state);
+    const finalContent = await mermaidGenerator.generateFinalMermaidFile(state, skippedFiles);
 
     // Save state
     await stateManager.saveState(state);

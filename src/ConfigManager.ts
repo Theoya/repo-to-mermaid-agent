@@ -53,7 +53,7 @@ export class ConfigManager {
       llm: {
         provider: 'openai',
         model: 'gpt-4',
-        max_tokens: 8000,
+        max_tokens: 60000,
         temperature: 0.1
       },
       output: {
