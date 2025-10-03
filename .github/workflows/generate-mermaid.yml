@@ -1,0 +1,120 @@
+name: Generate Mermaid Diagram
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      file_types:
+        description: 'Comma-separated file types to process'
+        required: false
+        default: 'cs,py,js,ts,jsx,tsx'
+      token_limit:
+        description: 'Token limit per processing batch'
+        required: false
+        default: '8000'
+      llm_model:
+        description: 'LLM model to use'
+        required: false
+        default: 'gpt-4'
+
+jobs:
+  generate-mermaid:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install Mermaid Generator
+        run: npm install -g mermaid-codebase-generator@latest
+        
+      - name: Generate Mermaid Diagram
+        run: |
+          mermaid-gen \
+            --token-limit ${{ github.event.inputs.token_limit || '8000' }} \
+            --file-types "${{ github.event.inputs.file_types || 'cs,py,js,ts,jsx,tsx' }}" \
+            --output "repo.mermaid" \
+            --llm-provider "openai" \
+            --llm-model "${{ github.event.inputs.llm_model || 'gpt-4' }}" \
+            --github-owner "${{ github.repository_owner }}" \
+            --github-repo "${{ github.event.repository.name }}" \
+            --github-branch "mermaid-update" \
+            --verbose
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create Pull Request
+        if: github.event_name != 'pull_request'
+        run: |
+          # Check if there are changes to commit
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Create and push to branch
+          git checkout -b mermaid-update
+          git add repo.mermaid
+          git commit -m "Update Mermaid diagram"
+          git push origin mermaid-update
+          
+          # Create pull request
+          gh pr create \
+            --title "Update repository architecture diagram" \
+            --body "Automatically generated Mermaid diagram of the codebase architecture" \
+            --base main \
+            --head mermaid-update \
+            --label "automated,mermaid,documentation,architecture"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          # Generate diagram for PR
+          mermaid-gen \
+            --token-limit ${{ github.event.inputs.token_limit || '8000' }} \
+            --file-types "${{ github.event.inputs.file_types || 'cs,py,js,ts,jsx,tsx' }}" \
+            --output "pr-mermaid.mermaid" \
+            --llm-provider "openai" \
+            --llm-model "${{ github.event.inputs.llm_model || 'gpt-4' }}" \
+            --verbose
+          
+          # Comment on PR with the diagram
+          gh pr comment ${{ github.event.number }} \
+            --body "## 📊 Updated Architecture Diagram
+          
+          Here's the updated Mermaid diagram for this PR:
+          
+          \`\`\`mermaid
+          $(cat pr-mermaid.mermaid)
+          \`\`\`"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload Mermaid file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mermaid-diagram
+          path: repo.mermaid
+          retention-days: 30

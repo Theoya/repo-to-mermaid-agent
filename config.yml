@@ -1,0 +1,77 @@
+# Default configuration for Mermaid Codebase Generator
+file_types:
+  - .cs
+  - .py
+  - .js
+  - .ts
+  - .jsx
+  - .tsx
+  - .java
+  - .go
+  - .rs
+  - .cpp
+  - .h
+  - .hpp
+  - .c
+  - .php
+  - .rb
+  - .swift
+  - .kt
+  - .scala
+  - .clj
+  - .hs
+  - .ml
+  - .fs
+  - .vb
+  - .sql
+  - .sh
+  - .ps1
+  - .bat
+  - .yaml
+  - .yml
+  - .json
+  - .xml
+  - .html
+  - .css
+  - .scss
+  - .less
+  - .vue
+  - .svelte
+  - .astro
+
+exclude_patterns:
+  - node_modules
+  - .git
+  - dist
+  - build
+  - target
+  - bin
+  - obj
+  - .next
+  - .nuxt
+  - .cache
+  - .parcel-cache
+  - coverage
+  - .nyc_output
+  - .vscode
+  - .idea
+  - *.log
+  - *.tmp
+  - *.temp
+
+llm:
+  provider: "openai"
+  model: "gpt-4"
+  max_tokens: 8000
+  temperature: 0.1
+
+output:
+  format: "mermaid"
+  file_path: "repo.mermaid"
+  include_summary: true
+
+github:
+  branch: "mermaid-update"
+  commit_message: "Update Mermaid diagram"
+  pr_title: "Update repository architecture diagram"
+  pr_body: "Automatically generated Mermaid diagram of the codebase architecture"
