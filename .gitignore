@@ -57,8 +57,6 @@ temp/
 *.temp
 
 # Generated files
-*.mermaid
-repo.mermaid
 .mermaid-generator-state.json
 .mermaid-generator-state-checkpoint.json
 

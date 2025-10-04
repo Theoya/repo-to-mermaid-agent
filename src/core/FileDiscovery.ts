@@ -57,14 +57,14 @@ export class FileDiscovery {
     
     // Create glob patterns for each file type
     const patterns = this.config.file_types.map(ext => 
-      path.join(rootPath, '**', `*${ext}`)
+      `${rootPath}/**/*${ext}`
     );
 
     for (const pattern of patterns) {
       try {
         const matches = await glob(pattern, {
           ignore: this.config.exclude_patterns.map(p => 
-            path.join(rootPath, '**', p)
+            `${rootPath}/**/${p}`
           ),
           nodir: true
         });

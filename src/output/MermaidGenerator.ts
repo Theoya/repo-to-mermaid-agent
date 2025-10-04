@@ -1,6 +1,6 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { ProcessingBucket, ProcessingState, LLMResponse } from '../types';
+import { ProcessingBucket, ProcessingState } from '../types';
 import { LLMInterface } from '../llm/LLMInterface';
 
 export class MermaidGenerator {
@@ -24,7 +24,7 @@ export class MermaidGenerator {
   async processBuckets(
     buckets: ProcessingBucket[],
     existingMermaid?: string,
-    skippedFiles?: Array<{ path: string; size: number; reason: string }>
+    _skippedFiles?: Array<{ path: string; size: number; reason: string }>
   ): Promise<ProcessingState> {
     const state: ProcessingState = {
       current_bucket_index: 0,
@@ -40,17 +40,17 @@ export class MermaidGenerator {
       state.current_bucket_index = i;
 
       try {
-        console.log(`Processing bucket ${i + 1}/${buckets.length} (${bucket.files.length} files, ${bucket.total_tokens} tokens)`);
+        console.log(`Processing bucket ${i + 1}/${buckets.length} (${bucket!.files.length} files, ${bucket!.total_tokens} tokens)`);
 
         const response = await this.llmClient.processBucket(
-          bucket,
+          bucket!,
           state.accumulated_summary,
           state.accumulated_mermaid
         );
 
         // Update bucket with results
-        bucket.summary = response.summary;
-        bucket.mermaid_content = response.mermaid_content;
+        bucket!.summary = response.summary;
+        bucket!.mermaid_content = response.mermaid_content;
 
         // Accumulate results
         state.accumulated_summary = this.mergeSummaries(
@@ -62,7 +62,7 @@ export class MermaidGenerator {
           response.mermaid_content
         );
 
-        state.processed_files += bucket.files.length;
+        state.processed_files += bucket!.files.length;
 
         console.log(`✓ Bucket ${i + 1} processed successfully`);
       } catch (error) {

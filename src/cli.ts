@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
-import * as path from 'path';
+// import * as path from 'path';
 import { ConfigManager } from './ConfigManager';
 import { FileDiscovery } from './core/FileDiscovery';
 import { BucketManager } from './core/BucketManager';
@@ -61,10 +62,10 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
       existingMermaid: options.existingMermaid,
       llmProvider: options.llmProvider,
       llmModel: options.llmModel,
-      llmApiKey: options.llmApiKey || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY,
-      githubToken: options.githubToken || process.env.GITHUB_TOKEN,
-      githubOwner: options.githubOwner || process.env.GITHUB_OWNER,
-      githubRepo: options.githubRepo || process.env.GITHUB_REPO,
+      llmApiKey: options.llmApiKey || process.env['OPENAI_API_KEY'] || process.env['ANTHROPIC_API_KEY'],
+      githubToken: options.githubToken || process.env['GITHUB_TOKEN'],
+      githubOwner: options.githubOwner || process.env['GITHUB_OWNER'],
+      githubRepo: options.githubRepo || process.env['GITHUB_REPO'],
       githubBranch: options.githubBranch,
       dryRun: options.dryRun,
       verbose: options.verbose
@@ -80,9 +81,9 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
     const config = await configManager.loadConfig(args);
 
     // Validate configuration
-    const validation = configManager.validateConfig(config);
-    if (!validation.valid) {
-      throw new Error(`Configuration validation failed: ${validation.errors.join(', ')}`);
+    const configValidation = configManager.validateConfig(config);
+    if (!configValidation.valid) {
+      throw new Error(`Configuration validation failed: ${configValidation.errors.join(', ')}`);
     }
 
     if (args.verbose) {
@@ -183,10 +184,10 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
     console.log(`  Output file: ${config.output.file_path}`);
 
     // Validate generated Mermaid
-    const validation = mermaidGenerator.validateMermaidSyntax(finalContent);
-    if (!validation.valid) {
+    const mermaidValidation = mermaidGenerator.validateMermaidSyntax(finalContent);
+    if (!mermaidValidation.valid) {
       console.warn(chalk.yellow('Warning: Generated Mermaid may have syntax issues:'));
-      validation.errors.forEach(error => console.warn(`  - ${error}`));
+      mermaidValidation.errors.forEach(error => console.warn(`  - ${error}`));
     }
 
     // GitHub integration (if configured)

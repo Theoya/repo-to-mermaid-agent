@@ -132,8 +132,10 @@ export class BucketManager {
     
     if (fileIndex !== -1) {
       const file = bucket.files[fileIndex];
-      bucket.files.splice(fileIndex, 1);
-      bucket.total_tokens -= this.tokenCalculator.calculateFileTokens(file);
+      if (file) {
+        bucket.files.splice(fileIndex, 1);
+        bucket.total_tokens -= this.tokenCalculator.calculateFileTokens(file);
+      }
       return true;
     }
     
@@ -182,12 +184,24 @@ export class BucketManager {
     const totalTokens = bucket1.total_tokens + bucket2.total_tokens;
     
     if (totalTokens <= this.maxTokensPerBucket) {
-      return {
+      const result: ProcessingBucket = {
         files: [...bucket1.files, ...bucket2.files],
-        total_tokens: totalTokens,
-        summary: bucket1.summary || bucket2.summary,
-        mermaid_content: bucket1.mermaid_content || bucket2.mermaid_content
+        total_tokens: totalTokens
       };
+      
+      if (bucket1.summary) {
+        result.summary = bucket1.summary;
+      } else if (bucket2.summary) {
+        result.summary = bucket2.summary;
+      }
+      
+      if (bucket1.mermaid_content) {
+        result.mermaid_content = bucket1.mermaid_content;
+      } else if (bucket2.mermaid_content) {
+        result.mermaid_content = bucket2.mermaid_content;
+      }
+      
+      return result;
     }
     
     return null;

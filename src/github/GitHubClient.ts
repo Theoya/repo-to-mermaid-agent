@@ -102,15 +102,20 @@ export class GitHubClient {
       }
 
       // Create or update the file
-      await this.octokit.rest.repos.createOrUpdateFileContents({
+      const updateParams: any = {
         owner: this.config.owner,
         repo: this.config.repo,
         path: filePath,
         message: commitMessage,
         content: Buffer.from(content).toString('base64'),
         branch: branch,
-        sha: sha,
-      });
+      };
+      
+      if (sha) {
+        updateParams.sha = sha;
+      }
+      
+      await this.octokit.rest.repos.createOrUpdateFileContents(updateParams);
     } catch (error) {
       throw new Error(`Failed to create/update file ${filePath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -137,7 +142,7 @@ export class GitHubClient {
 
       return {
         number: data.number,
-        url: data.html_url,
+        url: data.html_url || '',
       };
     } catch (error) {
       throw new Error(`Failed to create pull request: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -160,7 +165,7 @@ export class GitHubClient {
       if (data.length > 0) {
         return {
           number: data[0].number,
-          url: data[0].html_url,
+          url: data[0].html_url || '',
         };
       }
       return null;

@@ -209,8 +209,8 @@ Your responses should be professional, accurate, and focused on the technical ar
     const mermaidMatch = response.match(/mermaid[:\s]*([\s\S]*?)(?=\n\n|$)/i);
 
     return {
-      summary: summaryMatch ? summaryMatch[1].trim() : response,
-      mermaid_content: mermaidMatch ? mermaidMatch[1].trim() : ''
+      summary: summaryMatch ? summaryMatch[1]?.trim() || response : response,
+      mermaid_content: mermaidMatch ? mermaidMatch[1]?.trim() || '' : ''
     };
   }
 
