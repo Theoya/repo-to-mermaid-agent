@@ -164,8 +164,8 @@ export class GitHubClient {
 
       if (data.length > 0) {
         return {
-          number: data[0].number,
-          url: data[0].html_url || '',
+          number: data[0]?.number || 0,
+          url: data[0]?.html_url || '',
         };
       }
       return null;

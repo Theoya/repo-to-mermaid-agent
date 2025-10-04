@@ -95,8 +95,12 @@ export class MermaidGenerator {
   ): string {
     let content = '';
 
+    // Start with the Mermaid diagram first (for GitHub compatibility)
+    content += state.accumulated_mermaid;
+
+    // Add metadata as comments at the end
     if (this.includeSummary && state.accumulated_summary) {
-      content += `<!--\n`;
+      content += `\n\n<!--\n`;
       content += `Generated Mermaid Diagram\n`;
       content += `========================\n\n`;
       content += `Summary:\n${state.accumulated_summary}\n\n`;
@@ -112,10 +116,8 @@ export class MermaidGenerator {
         }
       }
       
-      content += `-->\n\n`;
+      content += `\n-->`;
     }
-
-    content += state.accumulated_mermaid;
 
     return content;
   }

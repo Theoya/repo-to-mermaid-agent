@@ -4,7 +4,7 @@ import { FileDiscovery } from '../core/FileDiscovery';
 import { BucketManager } from '../core/BucketManager';
 import { OpenAIClient } from '../llm/OpenAIClient';
 import { MermaidGenerator } from '../output/MermaidGenerator';
-import { StateManager } from '../output/StateManager';
+// import { StateManager } from '../output/StateManager'; // Unused import
 
 export class GitHubActionHandler {
   private githubClient: GitHubClient;
@@ -272,11 +272,16 @@ Please review the generated diagram to ensure it accurately represents the curre
         this.githubConfig.base_branch
       );
 
-      return {
+      const result: { branchExists: boolean; hasExistingPR: boolean; prUrl?: string; lastCommit?: string } = {
         branchExists,
         hasExistingPR: !!existingPR,
-        prUrl: existingPR?.url || undefined,
       };
+      
+      if (existingPR?.url) {
+        result.prUrl = existingPR.url;
+      }
+      
+      return result;
     } catch (error) {
       throw new Error(`Failed to get workflow status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

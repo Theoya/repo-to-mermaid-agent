@@ -5,14 +5,14 @@ export class BucketManager {
   private tokenCalculator: TokenCalculator;
   private maxTokensPerBucket: number;
   private tokenThreshold: number; // Percentage of max tokens to trigger bucket processing
-  private hardLimit: number; // Hard limit per bucket (100k tokens)
+      private hardLimit: number; // Hard limit per bucket (400k tokens to match GPT-5's context window)
   private skippedFiles: Array<{ path: string; size: number; reason: string }> = [];
 
   constructor(maxTokensPerBucket: number, tokenThreshold: number = 0.9) {
     this.tokenCalculator = new TokenCalculator();
     this.maxTokensPerBucket = maxTokensPerBucket;
     this.tokenThreshold = tokenThreshold;
-    this.hardLimit = 100000; // 100k token hard limit
+        this.hardLimit = 400000; // 400k token hard limit to match GPT-5's context window
   }
 
   /**
@@ -307,5 +307,55 @@ export class BucketManager {
    */
   clearSkippedFiles(): void {
     this.skippedFiles = [];
+  }
+
+  /**
+   * Split a large file into smaller chunks
+   */
+  private splitLargeFile(file: FileInfo): FileInfo[] {
+    const chunks: FileInfo[] = [];
+    const lines = file.content.split('\n');
+    const maxLinesPerChunk = Math.floor(lines.length * (this.hardLimit / this.tokenCalculator.calculateFileTokens(file)));
+    
+    for (let i = 0; i < lines.length; i += maxLinesPerChunk) {
+      const chunkLines = lines.slice(i, i + maxLinesPerChunk);
+      const chunkContent = chunkLines.join('\n');
+      const chunkNumber = Math.floor(i / maxLinesPerChunk) + 1;
+      
+      chunks.push({
+        path: `${file.path} (Part ${chunkNumber})`,
+        content: chunkContent,
+        size: Buffer.byteLength(chunkContent, 'utf8'),
+        extension: file.extension,
+        estimated_tokens: this.tokenCalculator.calculateFileTokens({
+          content: chunkContent,
+          extension: file.extension
+        } as FileInfo)
+      });
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Process files and split large ones if needed
+   */
+  processFilesWithSplitting(files: FileInfo[]): FileInfo[] {
+    const processedFiles: FileInfo[] = [];
+    
+    for (const file of files) {
+      const fileTokens = this.tokenCalculator.calculateFileTokens(file);
+      
+      if (fileTokens > this.hardLimit) {
+        console.log(`Splitting large file ${file.path} (${fileTokens} tokens) into smaller chunks...`);
+        const chunks = this.splitLargeFile(file);
+        processedFiles.push(...chunks);
+        console.log(`Split into ${chunks.length} chunks`);
+      } else {
+        processedFiles.push(file);
+      }
+    }
+    
+    return processedFiles;
   }
 }

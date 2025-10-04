@@ -21,7 +21,7 @@ program
   .version('1.0.0');
 
 program
-  .option('-t, --token-limit <number>', 'Token limit per processing batch', '60000')
+  .option('-t, --token-limit <number>', 'Token limit per processing batch', '400000') // Updated default to match GPT-5's context window
   .option('-f, --file-types <types>', 'Comma-separated list of file extensions', '')
   .option('-o, --output <path>', 'Output file path', 'repo.mermaid')
   .option('-c, --config <path>', 'Configuration file path', 'config.yml')
@@ -29,7 +29,7 @@ program
   .option('-s, --specific-files <files>', 'Comma-separated list of specific files to process', '')
   .option('-e, --existing-mermaid <path>', 'Path to existing Mermaid file to build upon', '')
   .option('-p, --llm-provider <provider>', 'LLM provider (openai, claude, grok)', 'openai')
-  .option('-m, --llm-model <model>', 'LLM model to use', '')
+  .option('-m, --llm-model <model>', 'LLM model to use', 'gpt-5')
   .option('-k, --llm-api-key <key>', 'LLM API key (or set via environment variable)', '')
   .option('-g, --github-token <token>', 'GitHub token for PR creation (or set via GITHUB_TOKEN)', '')
   .option('-O, --github-owner <owner>', 'GitHub repository owner', '')
@@ -53,7 +53,7 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
   try {
     // Parse CLI arguments
     const args: CLIArgs = {
-      tokenLimit: parseInt(options.tokenLimit) || 60000,
+      tokenLimit: parseInt(options.tokenLimit) || 400000, // Updated default to match GPT-5's context window
       fileTypes: options.fileTypes ? options.fileTypes.split(',').map((t: string) => t.trim()) : [],
       outputPath: options.output,
       configPath: options.config,
@@ -128,9 +128,13 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
 
     console.log(chalk.green(`Found ${files.length} files to process`));
 
+    // Process files and split large ones if needed
+    spinner.text = 'Processing files and splitting large ones...';
+    const processedFiles = bucketManager.processFilesWithSplitting(files);
+    
     // Create buckets
     spinner.text = 'Creating processing buckets...';
-    const buckets = bucketManager.createBuckets(files);
+    const buckets = bucketManager.createBuckets(processedFiles);
     const stats = bucketManager.getBucketStatistics(buckets);
 
     console.log(chalk.blue('Bucket Statistics:'));

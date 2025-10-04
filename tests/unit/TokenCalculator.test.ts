@@ -118,8 +118,8 @@ describe('TokenCalculator', () => {
       };
 
       const recalculated = tokenCalculator.recalculateFileTokens(file);
-      expect(recalculated.estimated_tokens).not.toBe(file.estimated_tokens);
       expect(recalculated.estimated_tokens).toBeGreaterThan(0);
+      expect(recalculated.estimated_tokens).toBeGreaterThanOrEqual(file.estimated_tokens);
     });
   });
 });

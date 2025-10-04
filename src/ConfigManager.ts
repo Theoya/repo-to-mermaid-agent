@@ -50,12 +50,12 @@ export class ConfigManager {
         '.next', '.nuxt', '.cache', '.parcel-cache', 'coverage', '.nyc_output',
         '.vscode', '.idea', '*.log', '*.tmp', '*.temp'
       ],
-      llm: {
-        provider: 'openai',
-        model: 'gpt-4',
-        max_tokens: 60000,
-        temperature: 0.1
-      },
+        llm: {
+          provider: 'openai',
+          model: 'gpt-5',
+          max_tokens: 400000, // Updated default to match GPT-5's context window
+          temperature: 0.1
+        },
       output: {
         format: 'mermaid',
         file_path: 'repo.mermaid',

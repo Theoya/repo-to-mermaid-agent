@@ -9,8 +9,8 @@ class MockLLMClient extends LLMInterface {
 
   async processBucket(
     bucket: ProcessingBucket,
-    previousSummary?: string,
-    previousMermaid?: string
+    _previousSummary?: string,
+    _previousMermaid?: string
   ): Promise<LLMResponse> {
     return {
       summary: `Mock summary for ${bucket.files.length} files`,
@@ -19,14 +19,14 @@ class MockLLMClient extends LLMInterface {
     };
   }
 
-  async generateSummary(files: FileInfo[], previousSummary?: string): Promise<string> {
+  async generateSummary(files: FileInfo[], _previousSummary?: string): Promise<string> {
     return `Mock summary for ${files.length} files`;
   }
 
   async generateMermaid(
-    summary: string,
-    files: FileInfo[],
-    previousMermaid?: string
+    _summary: string,
+    _files: FileInfo[],
+    _previousMermaid?: string
   ): Promise<string> {
     return 'graph TD\nA[Test] --> B[Result]';
   }

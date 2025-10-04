@@ -1,7 +1,7 @@
 import { FileDiscovery } from '../../src/core/FileDiscovery';
 import { Config } from '../../src/types';
 import * as fs from 'fs-extra';
-import * as path from 'path';
+// import * as path from 'path'; // Unused import
 
 // Mock fs-extra
 jest.mock('fs-extra');
@@ -48,33 +48,41 @@ describe('FileDiscovery', () => {
       const mockContent1 = 'console.log("test1");';
       const mockContent2 = 'const test = "test2";';
 
-      mockedFs.stat.mockResolvedValueOnce({ size: 100 } as any);
-      mockedFs.readFile.mockResolvedValueOnce(mockContent1);
-      mockedFs.stat.mockResolvedValueOnce({ size: 200 } as any);
-      mockedFs.readFile.mockResolvedValueOnce(mockContent2);
+      (mockedFs.stat as any).mockResolvedValueOnce({ size: 100 });
+      (mockedFs.readFile as any).mockResolvedValueOnce(mockContent1);
+      (mockedFs.stat as any).mockResolvedValueOnce({ size: 200 });
+      (mockedFs.readFile as any).mockResolvedValueOnce(mockContent2);
 
       const result = await fileDiscovery.discoverFiles('.', specificFiles);
 
       expect(result).toHaveLength(2);
-      expect(result[0].path).toBe('file1.js');
-      expect(result[0].content).toBe(mockContent1);
-      expect(result[0].extension).toBe('.js');
-      expect(result[1].path).toBe('file2.ts');
-      expect(result[1].content).toBe(mockContent2);
-      expect(result[1].extension).toBe('.ts');
+      expect(result[0]?.path).toBe('file1.js');
+      expect(result[0]?.content).toBe(mockContent1);
+      expect(result[0]?.extension).toBe('.js');
+      expect(result[1]?.path).toBe('file2.ts');
+      expect(result[1]?.content).toBe(mockContent2);
+      expect(result[1]?.extension).toBe('.ts');
     });
 
     it('should discover files recursively using glob', async () => {
-      const mockFiles = ['src/file1.js', 'src/file2.ts', 'test/file3.py'];
-      mockGlob.mockResolvedValue(mockFiles);
+      // Mock different files for each file type
+      mockGlob
+        .mockResolvedValueOnce(['src/file1.js']) // For .js files
+        .mockResolvedValueOnce(['src/file2.ts']) // For .ts files  
+        .mockResolvedValueOnce(['test/file3.py']); // For .py files
 
-      mockedFs.stat.mockResolvedValue({ size: 100 } as any);
-      mockedFs.readFile.mockResolvedValue('test content');
+      (mockedFs.stat as any).mockResolvedValue({ size: 100 });
+      (mockedFs.readFile as any).mockResolvedValue('test content');
 
       const result = await fileDiscovery.discoverFiles('.', undefined, true);
 
       expect(result).toHaveLength(3);
       expect(mockGlob).toHaveBeenCalledTimes(3); // Once for each file type
+      
+      // Clear mocks to prevent interference with other tests
+      mockGlob.mockClear();
+      (mockedFs.stat as any).mockClear();
+      (mockedFs.readFile as any).mockClear();
     });
 
     it('should discover files in single directory when not recursive', async () => {
@@ -84,9 +92,9 @@ describe('FileDiscovery', () => {
         { name: 'subdir', isFile: () => false }
       ];
 
-      mockedFs.readdir.mockResolvedValue(mockEntries as any);
-      mockedFs.stat.mockResolvedValue({ size: 100 } as any);
-      mockedFs.readFile.mockResolvedValue('test content');
+      (mockedFs.readdir as any).mockResolvedValue(mockEntries);
+      (mockedFs.stat as any).mockResolvedValue({ size: 100 });
+      (mockedFs.readFile as any).mockResolvedValue('test content');
 
       const result = await fileDiscovery.discoverFiles('.', undefined, false);
 
@@ -97,14 +105,14 @@ describe('FileDiscovery', () => {
     it('should handle file reading errors gracefully', async () => {
       const specificFiles = ['file1.js', 'file2.js'];
       
-      mockedFs.stat.mockRejectedValueOnce(new Error('File not found'));
-      mockedFs.stat.mockResolvedValueOnce({ size: 100 } as any);
-      mockedFs.readFile.mockResolvedValueOnce('test content');
+      (mockedFs.stat as any).mockRejectedValueOnce(new Error('File not found'));
+      (mockedFs.stat as any).mockResolvedValueOnce({ size: 100 });
+      (mockedFs.readFile as any).mockResolvedValueOnce('test content');
 
       const result = await fileDiscovery.discoverFiles('.', specificFiles);
 
       expect(result).toHaveLength(1);
-      expect(result[0].path).toBe('file2.js');
+      expect(result[0]?.path).toBe('file2.js');
     });
   });
 
@@ -119,8 +127,8 @@ describe('FileDiscovery', () => {
       const result = fileDiscovery.filterBySize(files, 200);
 
       expect(result).toHaveLength(2);
-      expect(result[0].size).toBeLessThanOrEqual(200);
-      expect(result[1].size).toBeLessThanOrEqual(200);
+      expect(result[0]?.size).toBeLessThanOrEqual(200);
+      expect(result[1]?.size).toBeLessThanOrEqual(200);
     });
   });
 
@@ -134,9 +142,9 @@ describe('FileDiscovery', () => {
 
       const result = fileDiscovery.sortBySize(files);
 
-      expect(result[0].size).toBe(300);
-      expect(result[1].size).toBe(200);
-      expect(result[2].size).toBe(100);
+      expect(result[0]?.size).toBe(300);
+      expect(result[1]?.size).toBe(200);
+      expect(result[2]?.size).toBe(100);
     });
   });
 
@@ -150,9 +158,9 @@ describe('FileDiscovery', () => {
 
       const result = fileDiscovery.sortByTokens(files);
 
-      expect(result[0].estimated_tokens).toBe(3);
-      expect(result[1].estimated_tokens).toBe(2);
-      expect(result[2].estimated_tokens).toBe(1);
+      expect(result[0]?.estimated_tokens).toBe(3);
+      expect(result[1]?.estimated_tokens).toBe(2);
+      expect(result[2]?.estimated_tokens).toBe(1);
     });
   });
 });

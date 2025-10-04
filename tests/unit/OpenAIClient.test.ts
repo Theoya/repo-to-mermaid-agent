@@ -2,17 +2,24 @@ import { OpenAIClient } from '../../src/llm/OpenAIClient';
 import { FileInfo, ProcessingBucket } from '../../src/types';
 
 // Mock OpenAI
+const mockCreate = jest.fn();
+const mockResponsesCreate = jest.fn();
+const mockList = jest.fn();
+
 jest.mock('openai', () => {
   return {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       chat: {
         completions: {
-          create: jest.fn()
+          create: mockCreate
         }
       },
+      responses: {
+        create: mockResponsesCreate
+      },
       models: {
-        list: jest.fn()
+        list: mockList
       }
     }))
   };
@@ -24,6 +31,23 @@ describe('OpenAIClient', () => {
   let mockBucket: ProcessingBucket;
 
   beforeEach(() => {
+    // Set up mock responses
+    const mockResponse = {
+      choices: [{
+        message: {
+          content: '{"summary": "Test summary", "mermaid_content": "graph TD\\nA --> B"}'
+        }
+      }],
+      usage: {
+        total_tokens: 150
+      }
+    };
+
+    mockCreate.mockResolvedValue(mockResponse);
+    mockList.mockResolvedValue({
+      data: [{ id: 'gpt-4' }, { id: 'gpt-5' }]
+    });
+
     openAIClient = new OpenAIClient('test-api-key', 'gpt-4', 1000, 0.1);
     
     mockFiles = [
@@ -56,20 +80,6 @@ describe('OpenAIClient', () => {
 
   describe('processBucket', () => {
     it('should process bucket successfully', async () => {
-      const mockResponse = {
-        choices: [{
-          message: {
-            content: '{"summary": "Test summary", "mermaid_content": "graph TD\\nA --> B"}'
-          }
-        }],
-        usage: {
-          total_tokens: 150
-        }
-      };
-
-      const mockCreate = require('openai').default().chat.completions.create;
-      mockCreate.mockResolvedValue(mockResponse);
-
       const result = await openAIClient.processBucket(mockBucket);
 
       expect(result.summary).toBe('Test summary');

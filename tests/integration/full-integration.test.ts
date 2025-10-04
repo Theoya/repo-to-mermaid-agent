@@ -287,19 +287,25 @@ describe('UserService', () => {
   });
 
   it('should handle specific files list', async () => {
+    // Skip test if no API key is available
+    if (!process.env['OPENAI_API_KEY']) {
+      console.log('Skipping integration test: OPENAI_API_KEY not set');
+      return;
+    }
+
     const specificFiles = [
       path.join(testDir, 'src', 'index.ts'),
       path.join(testDir, 'src', 'models', 'User.ts')
     ];
 
     try {
-      const command = `npx ts-node src/cli.ts --file-types "ts" --output "${path.join(outputDir, 'specific-files-test.mermaid')}" --token-limit 4000 --specific-files "${specificFiles.join(',')}"`;
+      const command = `npx ts-node src/cli.ts --file-types "ts" --output "${path.join(outputDir, 'specific-files-test.mermaid')}" --token-limit 50000 --specific-files "${specificFiles.join(',')}"`;
       
       execSync(command, {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          OPENAI_API_KEY: process.env['OPENAI_API_KEY'] || 'test-key'
+          OPENAI_API_KEY: process.env['OPENAI_API_KEY']
         },
         stdio: 'pipe'
       });

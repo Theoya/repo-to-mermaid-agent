@@ -11,6 +11,10 @@ export class TokenCalculator {
    * Calculate tokens for a single file
    */
   calculateFileTokens(file: FileInfo): number {
+    // Use pre-calculated estimated_tokens if available and reasonable, otherwise calculate
+    if (file.estimated_tokens !== undefined && file.estimated_tokens > 0) {
+      return file.estimated_tokens;
+    }
     return this.estimateTokens(file.content);
   }
 

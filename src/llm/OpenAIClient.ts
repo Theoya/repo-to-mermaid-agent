@@ -29,18 +29,50 @@ export class OpenAIClient extends LLMInterface {
     const userPrompt = this.createUserPrompt(bucket.files, previousSummary, previousMermaid);
 
     try {
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: this.maxTokens,
-        temperature: this.temperature
-      });
+      let response;
+      if (this.model === 'gpt-5') {
+        // Use Responses API for GPT-5
+        response = await (this.client as any).responses.create({
+          model: this.model,
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: `${systemPrompt}\n\n${userPrompt}` }] }
+          ],
+          text: {
+            format: { type: 'text' }
+          },
+          reasoning: {
+            effort: 'medium'
+          },
+          tools: [],
+          store: true
+        });
+      } else {
+        // Use Chat Completions API for other models
+        response = await this.client.chat.completions.create({
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: Math.min(this.maxTokens, 4000),
+          temperature: this.temperature
+        });
+      }
 
-      const content = response.choices[0]?.message?.content;
+      let content;
+      if (this.model === 'gpt-5') {
+        // Parse Responses API response
+        const outputText = (response as any).input?.find((item: any) => 
+          item.role === 'assistant' && item.content?.[0]?.type === 'output_text'
+        );
+        content = outputText?.content?.[0]?.text;
+      } else {
+        // Parse Chat Completions API response
+        content = (response as any).choices[0]?.message?.content;
+      }
+      
       if (!content) {
+        console.error('OpenAI Response:', JSON.stringify(response, null, 2));
         throw new Error('No content received from OpenAI');
       }
 
@@ -75,17 +107,38 @@ Be concise but thorough in your analysis.`;
     const userPrompt = this.createUserPrompt(files, previousSummary);
 
     try {
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: Math.min(this.maxTokens, 2000),
-        temperature: this.temperature
-      });
+      let response;
+      if (this.model === 'gpt-5') {
+        response = await (this.client as any).responses.create({
+          model: this.model,
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: `${systemPrompt}\n\n${userPrompt}` }] }
+          ],
+          text: { format: { type: 'text' } },
+          reasoning: { effort: 'medium' },
+          tools: [],
+          store: true
+        });
+      } else {
+        response = await this.client.chat.completions.create({
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: Math.min(this.maxTokens, 2000),
+          temperature: this.temperature
+        });
+      }
 
-      return response.choices[0]?.message?.content || '';
+      if (this.model === 'gpt-5') {
+        const outputText = (response as any).input?.find((item: any) => 
+          item.role === 'assistant' && item.content?.[0]?.type === 'output_text'
+        );
+        return outputText?.content?.[0]?.text || '';
+      } else {
+        return (response as any).choices[0]?.message?.content || '';
+      }
     } catch (error) {
       throw new Error(`OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -123,17 +176,39 @@ Return only the Mermaid diagram code, without any markdown formatting or explana
     }
 
     try {
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: Math.min(this.maxTokens, 3000),
-        temperature: this.temperature
-      });
+      let response;
+      if (this.model === 'gpt-5') {
+        response = await (this.client as any).responses.create({
+          model: this.model,
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: `${systemPrompt}\n\n${userPrompt}` }] }
+          ],
+          text: { format: { type: 'text' } },
+          reasoning: { effort: 'medium' },
+          tools: [],
+          store: true
+        });
+      } else {
+        response = await this.client.chat.completions.create({
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: Math.min(this.maxTokens, 3000),
+          temperature: this.temperature
+        });
+      }
 
-      const content = response.choices[0]?.message?.content || '';
+      let content;
+      if (this.model === 'gpt-5') {
+        const outputText = (response as any).input?.find((item: any) => 
+          item.role === 'assistant' && item.content?.[0]?.type === 'output_text'
+        );
+        content = outputText?.content?.[0]?.text || '';
+      } else {
+        content = (response as any).choices[0]?.message?.content || '';
+      }
       return this.cleanMermaidContent(content);
     } catch (error) {
       throw new Error(`OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -199,12 +274,25 @@ Return only the Mermaid diagram code, without any markdown formatting or explana
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      await this.client.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: 'Hello, this is a test message.' }],
-        max_tokens: 10,
-        temperature: 0
-      });
+      if (this.model === 'gpt-5') {
+        await (this.client as any).responses.create({
+          model: this.model,
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello, this is a test message.' }] }
+          ],
+          text: { format: { type: 'text' } },
+          reasoning: { effort: 'low' },
+          tools: [],
+          store: false
+        });
+      } else {
+        await this.client.chat.completions.create({
+          model: this.model,
+          messages: [{ role: 'user', content: 'Hello, this is a test message.' }],
+          max_tokens: 10,
+          temperature: 0
+        });
+      }
 
       return {
         success: true,
