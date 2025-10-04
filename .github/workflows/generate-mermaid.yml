@@ -26,6 +26,8 @@ on:
 jobs:
   generate-mermaid:
     runs-on: ubuntu-latest
+    # Skip this workflow for the repo-to-mermaid-agent repository itself
+    if: github.repository != 'Theoya/repo-to-mermaid-agent'
     
     steps:
       - name: Checkout repository

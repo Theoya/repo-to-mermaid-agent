@@ -55,9 +55,9 @@ exclude_patterns:
   - .nyc_output
   - .vscode
   - .idea
-  - *.log
-  - *.tmp
-  - *.temp
+  - "*.log"
+  - "*.tmp"
+  - "*.temp"
 
 llm:
   provider: "openai"

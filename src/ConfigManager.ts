@@ -1,5 +1,5 @@
 import * as fs from 'fs-extra';
-import * as path from 'path';
+// import * as path from 'path';
 import * as yaml from 'yaml';
 import { Config, CLIArgs } from './types';
 

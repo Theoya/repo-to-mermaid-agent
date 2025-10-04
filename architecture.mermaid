@@ -1,0 +1,69 @@
+graph TD
+    A[CLI Interface] --> B[Configuration Manager]
+    B --> C[File Discovery Service]
+    C --> D[Token Calculator]
+    D --> E[Bucket Manager]
+    E --> F[LLM Interface]
+    F --> G[OpenAI Implementation]
+    F --> H[Claude Implementation]
+    F --> I[Grok Implementation]
+    G --> J[Mermaid Generator]
+    H --> J
+    I --> J
+    J --> K[State Manager]
+    K --> L[Output Handler]
+    L --> M[GitHub Action Integration]
+    M --> N[PR Creator]
+    
+    subgraph "Core Processing"
+        C
+        D
+        E
+        J
+        K
+    end
+    
+    subgraph "LLM Providers"
+        F
+        G
+        H
+        I
+    end
+    
+    subgraph "Output & Integration"
+        L
+        M
+        N
+    end
+    
+    subgraph "Configuration"
+        B
+        O[config.yml]
+        P[Environment Variables]
+    end
+    
+    B --> O
+    B --> P
+    
+    subgraph "File Processing"
+        Q[File Reader]
+        R[File Filter]
+        S[File Parser]
+    end
+    
+    C --> Q
+    C --> R
+    C --> S
+    
+    subgraph "Testing Suite"
+        T[Unit Tests]
+        U[Integration Tests]
+        V[Test Data]
+    end
+    
+    T --> F
+    T --> C
+    T --> D
+    T --> E
+    U --> A
+    U --> G

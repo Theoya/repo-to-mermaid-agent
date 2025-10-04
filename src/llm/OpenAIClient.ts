@@ -36,8 +36,7 @@ export class OpenAIClient extends LLMInterface {
           { role: 'user', content: userPrompt }
         ],
         max_tokens: this.maxTokens,
-        temperature: this.temperature,
-        response_format: { type: 'json_object' }
+        temperature: this.temperature
       });
 
       const content = response.choices[0]?.message?.content;
@@ -167,8 +166,8 @@ Return only the Mermaid diagram code, without any markdown formatting or explana
     };
 
     const modelPricing = pricing[this.model] || pricing['gpt-4'];
-    const inputCost = (inputTokens / 1000) * modelPricing.input;
-    const outputCost = (outputTokens / 1000) * modelPricing.output;
+    const inputCost = (inputTokens / 1000) * (modelPricing?.input || 0.03);
+    const outputCost = (outputTokens / 1000) * (modelPricing?.output || 0.06);
 
     return inputCost + outputCost;
   }
@@ -200,7 +199,7 @@ Return only the Mermaid diagram code, without any markdown formatting or explana
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await this.client.chat.completions.create({
+      await this.client.chat.completions.create({
         model: this.model,
         messages: [{ role: 'user', content: 'Hello, this is a test message.' }],
         max_tokens: 10,

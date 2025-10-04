@@ -169,7 +169,7 @@ export class GitHubActionHandler {
     const fileDiscovery = new FileDiscovery(this.config);
     const bucketManager = new BucketManager(this.config.llm.max_tokens);
     const llmClient = new OpenAIClient(
-      process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || '',
+      process.env['OPENAI_API_KEY'] || process.env['ANTHROPIC_API_KEY'] || '',
       this.config.llm.model,
       this.config.llm.max_tokens,
       this.config.llm.temperature
@@ -179,7 +179,7 @@ export class GitHubActionHandler {
       this.config.output.file_path,
       this.config.output.include_summary
     );
-    const stateManager = new StateManager();
+    // const stateManager = new StateManager();
 
     // Discover files
     const files = await fileDiscovery.discoverFiles(
@@ -275,7 +275,7 @@ Please review the generated diagram to ensure it accurately represents the curre
       return {
         branchExists,
         hasExistingPR: !!existingPR,
-        prUrl: existingPR?.url,
+        prUrl: existingPR?.url || undefined,
       };
     } catch (error) {
       throw new Error(`Failed to get workflow status: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -285,7 +285,7 @@ Please review the generated diagram to ensure it accurately represents the curre
   /**
    * Clean up old branches (optional utility)
    */
-  async cleanupOldBranches(maxAge: number = 30): Promise<void> {
+  async cleanupOldBranches(_maxAge: number = 30): Promise<void> {
     // This would be implemented to clean up old Mermaid update branches
     // For now, it's a placeholder
     console.log('🧹 Cleanup functionality not yet implemented');
