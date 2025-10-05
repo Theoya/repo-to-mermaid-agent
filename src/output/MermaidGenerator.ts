@@ -87,6 +87,38 @@ export class MermaidGenerator {
   }
 
   /**
+   * Sanitize Mermaid content to fix common syntax issues
+   */
+  private sanitizeMermaidContent(content: string): string {
+    return content
+      // Fix node labels with special characters
+      .replace(/(\w+)\{([^}]*[><=]+[^}]*)\}/g, (_match, nodeId, label) => {
+        // Escape special characters in decision node labels
+        const escapedLabel = label
+          .replace(/>/g, '&gt;')
+          .replace(/</g, '&lt;')
+          .replace(/=/g, '&equals;');
+        return `${nodeId}{${escapedLabel}}`;
+      })
+      // Fix node labels with special characters in square brackets
+      .replace(/(\w+)\[([^\]]*[><=]+[^\]]*)\]/g, (_match, nodeId, label) => {
+        const escapedLabel = label
+          .replace(/>/g, '&gt;')
+          .replace(/</g, '&lt;')
+          .replace(/=/g, '&equals;');
+        return `${nodeId}[${escapedLabel}]`;
+      })
+      // Fix connection labels with special characters
+      .replace(/--\s*"([^"]*[><=]+[^"]*)"\s*-->/g, (_match, label) => {
+        const escapedLabel = label
+          .replace(/>/g, '&gt;')
+          .replace(/</g, '&lt;')
+          .replace(/=/g, '&equals;');
+        return `-- "${escapedLabel}" -->`;
+      });
+  }
+
+  /**
    * Build final Mermaid content
    */
   private buildFinalMermaidContent(
@@ -96,7 +128,7 @@ export class MermaidGenerator {
     let content = '';
 
     // Start with the Mermaid diagram first (for GitHub compatibility)
-    content += state.accumulated_mermaid;
+    content += this.sanitizeMermaidContent(state.accumulated_mermaid);
 
     // Add metadata as comments at the end
     if (this.includeSummary && state.accumulated_summary) {
