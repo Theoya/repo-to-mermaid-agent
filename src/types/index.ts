@@ -6,11 +6,19 @@ export interface Config {
     model: string;
     max_tokens: number;
     temperature: number;
+    additional_instructions: string;
   };
   output: {
     format: string;
     file_path: string;
     include_summary: boolean;
+  };
+  colors: {
+    tests: string;
+    config: string;
+    core: string;
+    llm: string;
+    output: string;
   };
   github: {
     branch: string;

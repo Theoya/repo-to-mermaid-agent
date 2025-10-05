@@ -23,12 +23,20 @@ describe('FileDiscovery', () => {
         provider: 'openai',
         model: 'gpt-4',
         max_tokens: 8000,
-        temperature: 0.1
+        temperature: 0.1,
+        additional_instructions: ''
       },
       output: {
         format: 'mermaid',
         file_path: 'repo.mermaid',
         include_summary: true
+      },
+      colors: {
+        tests: '#e17055',
+        config: '#fdcb6e',
+        core: '#0984e3',
+        llm: '#55efc4',
+        output: '#6c5ce7'
       },
       github: {
         branch: 'mermaid-update',

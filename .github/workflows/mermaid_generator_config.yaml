@@ -1,18 +1,21 @@
-# Default configuration for Mermaid Codebase Generator
+# Mermaid Generator Configuration
+# Copy this file to your repository root and customize as needed
+
+# File types to include in analysis
 file_types:
-  - .cs
-  - .py
-  - .js
   - .ts
-  - .jsx
+  - .js
   - .tsx
+  - .jsx
+  - .py
   - .java
+  - .cs
   - .go
   - .rs
   - .cpp
+  - .c
   - .h
   - .hpp
-  - .c
   - .php
   - .rb
   - .swift
@@ -39,6 +42,7 @@ file_types:
   - .svelte
   - .astro
 
+# Directories and files to always exclude (node_modules is always ignored)
 exclude_patterns:
   - node_modules
   - .git
@@ -58,17 +62,29 @@ exclude_patterns:
   - "*.log"
   - "*.tmp"
   - "*.temp"
+  - "*.min.js"
+  - "*.min.css"
 
+# LLM Configuration
 llm:
   provider: "openai"
   model: "gpt-5"
-  max_tokens: 400000
+  max_tokens: 100000  # Optimized for GPT-5's context window
   temperature: 0.1
+  additional_instructions: ""  # Add custom instructions for your codebase analysis
 
 output:
   format: "mermaid"
   file_path: "repo.mermaid"
   include_summary: true
+
+# Color scheme for Mermaid diagrams
+colors:
+  tests: "#e17055"        # Orange for tests and testing suites
+  config: "#fdcb6e"       # Yellow for configuration files and tools
+  core: "#0984e3"         # Blue for core functionality or business logic
+  llm: "#55efc4"          # Green for LLM related stuff
+  output: "#6c5ce7"       # Purple for output stuff
 
 github:
   branch: "mermaid-update"

@@ -17,11 +17,11 @@ on:
       token_limit:
         description: 'Token limit per processing batch'
         required: false
-        default: '60000'
+        default: '100000'
       llm_model:
         description: 'LLM model to use'
         required: false
-        default: 'gpt-4'
+        default: 'gpt-5'
 
 jobs:
   generate-mermaid:
@@ -47,11 +47,11 @@ jobs:
       - name: Generate Mermaid Diagram
         run: |
           mermaid-gen \
-            --token-limit ${{ github.event.inputs.token_limit || '60000' }} \
+            --token-limit ${{ github.event.inputs.token_limit || '100000' }} \
             --file-types "${{ github.event.inputs.file_types || 'cs,py,js,ts,jsx,tsx' }}" \
             --output "repo.mermaid" \
             --llm-provider "openai" \
-            --llm-model "${{ github.event.inputs.llm_model || 'gpt-4' }}" \
+            --llm-model "${{ github.event.inputs.llm_model || 'gpt-5' }}" \
             --github-owner "${{ github.repository_owner }}" \
             --github-repo "${{ github.event.repository.name }}" \
             --github-branch "mermaid-update" \
@@ -94,11 +94,11 @@ jobs:
         run: |
           # Generate diagram for PR
           mermaid-gen \
-            --token-limit ${{ github.event.inputs.token_limit || '60000' }} \
+            --token-limit ${{ github.event.inputs.token_limit || '100000' }} \
             --file-types "${{ github.event.inputs.file_types || 'cs,py,js,ts,jsx,tsx' }}" \
             --output "pr-mermaid.mermaid" \
             --llm-provider "openai" \
-            --llm-model "${{ github.event.inputs.llm_model || 'gpt-4' }}" \
+            --llm-model "${{ github.event.inputs.llm_model || 'gpt-5' }}" \
             --verbose
           
           # Comment on PR with the diagram

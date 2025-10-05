@@ -63,10 +63,23 @@ export class FileDiscovery {
     for (const pattern of patterns) {
       try {
         const matches = await glob(pattern, {
-          ignore: this.config.exclude_patterns.map(p => 
-            `${rootPath}/**/${p}`
-          ),
-          nodir: true
+          ignore: this.config.exclude_patterns.map(p => {
+            // Handle different types of patterns
+            if (p.includes('*')) {
+              // Wildcard patterns like *.log
+              return `${rootPath}/**/${p}`;
+            } else {
+              // Directory patterns like node_modules - use multiple patterns for better coverage
+              return [
+                `${rootPath}/**/${p}/**`,
+                `${rootPath}/**/${p}`,
+                `**/${p}/**`,
+                `**/${p}`
+              ];
+            }
+          }).flat(), // Flatten the array since some patterns return arrays
+          nodir: true,
+          windowsPathsNoEscape: true // Windows-specific option
         });
 
         for (const match of matches) {
@@ -84,7 +97,22 @@ export class FileDiscovery {
       }
     }
 
-    return files;
+    // Additional filtering to catch any files that slipped through glob patterns
+    return files.filter(file => {
+      const normalizedPath = file.path.replace(/\\/g, '/'); // Normalize Windows paths
+      return !this.config.exclude_patterns.some(pattern => {
+        if (pattern.includes('*')) {
+          // Handle wildcard patterns
+          const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+          return regex.test(normalizedPath);
+        } else {
+          // Handle directory patterns
+          return normalizedPath.includes(`/${pattern}/`) || 
+                 normalizedPath.endsWith(`/${pattern}`) ||
+                 normalizedPath.startsWith(`${pattern}/`);
+        }
+      });
+    });
   }
 
   /**

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { FileInfo, ProcessingBucket, LLMResponse } from '../types';
+import { FileInfo, ProcessingBucket, LLMResponse, Config } from '../types';
 import { LLMInterface } from './LLMInterface';
 
 export class OpenAIClient extends LLMInterface {
@@ -9,9 +9,11 @@ export class OpenAIClient extends LLMInterface {
     apiKey: string,
     model: string = 'gpt-4',
     maxTokens: number = 8000,
-    temperature: number = 0.1
+    temperature: number = 0.1,
+    colors?: Config['colors'],
+    additionalInstructions: string = ''
   ) {
-    super(apiKey, model, maxTokens, temperature);
+    super(apiKey, model, maxTokens, temperature, colors, additionalInstructions);
     this.client = new OpenAI({
       apiKey: this.apiKey,
     });
@@ -62,8 +64,8 @@ export class OpenAIClient extends LLMInterface {
       let content;
       if (this.model === 'gpt-5') {
         // Parse Responses API response
-        const outputText = (response as any).input?.find((item: any) => 
-          item.role === 'assistant' && item.content?.[0]?.type === 'output_text'
+        const outputText = (response as any).output?.find((item: any) => 
+          item.type === 'message' && item.content?.[0]?.type === 'output_text'
         );
         content = outputText?.content?.[0]?.text;
       } else {
@@ -132,8 +134,8 @@ Be concise but thorough in your analysis.`;
       }
 
       if (this.model === 'gpt-5') {
-        const outputText = (response as any).input?.find((item: any) => 
-          item.role === 'assistant' && item.content?.[0]?.type === 'output_text'
+        const outputText = (response as any).output?.find((item: any) => 
+          item.type === 'message' && item.content?.[0]?.type === 'output_text'
         );
         return outputText?.content?.[0]?.text || '';
       } else {
@@ -202,8 +204,8 @@ Return only the Mermaid diagram code, without any markdown formatting or explana
 
       let content;
       if (this.model === 'gpt-5') {
-        const outputText = (response as any).input?.find((item: any) => 
-          item.role === 'assistant' && item.content?.[0]?.type === 'output_text'
+        const outputText = (response as any).output?.find((item: any) => 
+          item.type === 'message' && item.content?.[0]?.type === 'output_text'
         );
         content = outputText?.content?.[0]?.text || '';
       } else {

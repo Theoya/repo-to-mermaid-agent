@@ -1,21 +1,33 @@
-import { FileInfo, ProcessingBucket, LLMResponse } from '../types';
+import { FileInfo, ProcessingBucket, LLMResponse, Config } from '../types';
 
 export abstract class LLMInterface {
   protected apiKey: string;
   protected model: string;
   protected maxTokens: number;
   protected temperature: number;
+  protected colors: Config['colors'];
+  protected additionalInstructions: string;
 
   constructor(
     apiKey: string,
     model: string,
     maxTokens: number = 8000,
-    temperature: number = 0.1
+    temperature: number = 0.1,
+    colors?: Config['colors'],
+    additionalInstructions: string = ''
   ) {
     this.apiKey = apiKey;
     this.model = model;
     this.maxTokens = maxTokens;
     this.temperature = temperature;
+    this.colors = colors || {
+      tests: '#e17055',
+      config: '#fdcb6e',
+      core: '#0984e3',
+      llm: '#55efc4',
+      output: '#6c5ce7'
+    };
+    this.additionalInstructions = additionalInstructions;
   }
 
   /**
@@ -87,7 +99,7 @@ Key requirements:
 2. Identify key components, modules, and their interactions
 3. Highlight important data flows and dependencies
 4. Create clear, readable summaries that capture the essence of the code
-5. Generate valid Mermaid syntax for diagrams
+5. Generate valid Mermaid syntax for diagrams with colors and styling
 
 When analyzing code:
 - Identify classes, interfaces, and their relationships
@@ -96,7 +108,24 @@ When analyzing code:
 - Recognize design patterns and architectural decisions
 - Consider the overall system structure and organization
 
-Your responses should be professional, accurate, and focused on the technical architecture rather than implementation details.`;
+For Mermaid diagrams, use colors and styling to enhance readability:
+- Use classDef to define color schemes for different types of components
+- Apply consistent colors based on component type:
+  * ${this.colors.tests} for tests and testing suites
+  * ${this.colors.config} for configuration files and tools
+  * ${this.colors.core} for core functionality or business logic
+  * ${this.colors.llm} for LLM related components
+  * ${this.colors.output} for output and rendering components
+- Use different node shapes: rectangles for classes, diamonds for decisions, circles for endpoints
+- Add meaningful labels and connections with descriptive text
+- Example color scheme:
+  classDef tests fill:${this.colors.tests},stroke:#ffffff,stroke-width:2px
+  classDef config fill:${this.colors.config},stroke:#ffffff,stroke-width:2px
+  classDef core fill:${this.colors.core},stroke:#ffffff,stroke-width:2px
+  classDef llm fill:${this.colors.llm},stroke:#ffffff,stroke-width:2px
+  classDef output fill:${this.colors.output},stroke:#ffffff,stroke-width:2px
+
+Your responses should be professional, accurate, and focused on the technical architecture rather than implementation details.${this.additionalInstructions ? `\n\nAdditional Instructions:\n${this.additionalInstructions}` : ''}`;
   }
 
   /**
@@ -128,11 +157,21 @@ Your responses should be professional, accurate, and focused on the technical ar
 
     prompt += `Please provide:\n`;
     prompt += `1. A comprehensive summary of the code architecture and relationships\n`;
-    prompt += `2. A Mermaid diagram showing the system structure and component relationships\n\n`;
+    prompt += `2. A Mermaid diagram showing the system structure and component relationships with colors and styling\n\n`;
+    prompt += `For the Mermaid diagram:\n`;
+    prompt += `- Use classDef to define color schemes for different component types\n`;
+    prompt += `- Apply colors consistently based on component type:\n`;
+    prompt += `  * ${this.colors.tests} for tests and testing suites\n`;
+    prompt += `  * ${this.colors.config} for configuration files and tools\n`;
+    prompt += `  * ${this.colors.core} for core functionality or business logic\n`;
+    prompt += `  * ${this.colors.llm} for LLM related components\n`;
+    prompt += `  * ${this.colors.output} for output and rendering components\n`;
+    prompt += `- Use descriptive node shapes and labels\n`;
+    prompt += `- Include class assignments at the end of the diagram\n\n`;
     prompt += `Format your response as JSON with the following structure:\n`;
     prompt += `{\n`;
     prompt += `  "summary": "Your detailed summary here",\n`;
-    prompt += `  "mermaid_content": "Your Mermaid diagram here"\n`;
+    prompt += `  "mermaid_content": "Your colored Mermaid diagram here"\n`;
     prompt += `}`;
 
     return prompt;

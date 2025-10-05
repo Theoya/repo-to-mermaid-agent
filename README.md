@@ -26,6 +26,53 @@ npx mermaid-codebase-generator@latest
 
 ### Basic Usage
 
+The simplest way to generate a Mermaid diagram:
+
+```bash
+# Generate diagram with all defaults
+mermaid-gen
+
+# Or specify custom output file
+mermaid-gen --output my-diagram.mermaid
+```
+
+That's it! The tool will automatically:
+- Use the configuration from `mermaid_generator_config.yaml` (if present)
+- Process all relevant files in your repository
+- **Automatically exclude `node_modules` and other build artifacts** (no configuration needed)
+- Generate a color-coded Mermaid diagram
+- Use optimized defaults (100k tokens, GPT-5 model)
+
+## What Gets Excluded Automatically
+
+The tool automatically excludes common build and dependency directories:
+- `node_modules` (always excluded)
+- `.git`, `dist`, `build`, `target`, `bin`, `obj`
+- `.next`, `.nuxt`, `.cache`, `.parcel-cache`
+- `coverage`, `.nyc_output`
+- `.vscode`, `.idea`
+- `*.log`, `*.tmp`, `*.temp`, `*.min.js`, `*.min.css`
+
+This means you can run `mermaid-gen` in any project and it will focus on your actual source code, not build artifacts or dependencies.
+
+## GitHub Action Setup
+
+To automatically generate Mermaid diagrams in your CI/CD pipeline:
+
+1. **Copy the workflow file** from `.github/workflows/mermaid_generator_config.yaml` to your repository root
+2. **Add the workflow** to your `.github/workflows/` directory
+3. **Set up secrets** in your repository settings:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `GITHUB_TOKEN`: Automatically provided by GitHub
+
+The action will:
+- Run on pushes to main/develop branches
+- Generate updated Mermaid diagrams
+- Create pull requests with the updated diagrams
+- Use the same smart exclusions (no node_modules processing)
+
+### Advanced Usage
+
 ```bash
 # Generate diagram for current directory
 mermaid-gen --llm-api-key YOUR_OPENAI_API_KEY
@@ -45,15 +92,15 @@ mermaid-gen --output "docs/architecture.mermaid" --llm-api-key YOUR_OPENAI_API_K
 mermaid-gen [options] [directory]
 
 Options:
-  -t, --token-limit <number>     Token limit per processing batch (default: 60000)
+  -t, --token-limit <number>     Token limit per processing batch (default: 100000)
   -f, --file-types <types>       Comma-separated file extensions (default: auto-detect)
   -o, --output <path>            Output file path (default: repo.mermaid)
-  -c, --config <path>            Configuration file path (default: config.yml)
+  -c, --config <path>            Configuration file path (default: mermaid_generator_config.yaml)
   -r, --recursive                Process files recursively (default: true)
   -s, --specific-files <files>   Comma-separated list of specific files
   -e, --existing-mermaid <path>  Path to existing Mermaid file to build upon
   -p, --llm-provider <provider>  LLM provider: openai, claude, grok (default: openai)
-  -m, --llm-model <model>        LLM model to use (default: gpt-4)
+  -m, --llm-model <model>        LLM model to use (default: gpt-5)
   -k, --llm-api-key <key>        LLM API key (or set via environment variable)
   -g, --github-token <token>     GitHub token for PR creation
   -O, --github-owner <owner>     GitHub repository owner
@@ -67,7 +114,7 @@ Options:
 
 ### Configuration File
 
-Create a `config.yml` file to customize behavior:
+Create a `mermaid_generator_config.yaml` file to customize behavior:
 
 ```yaml
 file_types:
@@ -90,14 +137,23 @@ exclude_patterns:
 
 llm:
   provider: "openai"
-  model: "gpt-4"
-  max_tokens: 60000
+  model: "gpt-5"
+  max_tokens: 100000
   temperature: 0.1
+  additional_instructions: ""  # Additional context/instructions for the LLM
 
 output:
   format: "mermaid"
   file_path: "repo.mermaid"
   include_summary: true
+
+# Color scheme for Mermaid diagrams
+colors:
+  tests: "#e17055"        # Orange for tests and testing suites
+  config: "#fdcb6e"       # Yellow for configuration files and tools
+  core: "#0984e3"         # Blue for core functionality or business logic
+  llm: "#55efc4"          # Green for LLM related components
+  output: "#6c5ce7"       # Purple for output and rendering components
 
 github:
   branch: "mermaid-update"
@@ -167,11 +223,11 @@ jobs:
       - name: Generate Mermaid diagram
         run: |
           npx mermaid-codebase-generator@latest \
-            --token-limit 60000 \
+            --token-limit 100000 \
             --file-types "cs,py,js,ts,jsx,tsx" \
             --output "repo.mermaid" \
             --llm-provider "openai" \
-            --llm-model "gpt-4" \
+            --llm-model "gpt-5" \
             --github-owner "${{ github.repository_owner }}" \
             --github-repo "${{ github.event.repository.name }}" \
             --github-branch "mermaid-update" \
@@ -218,11 +274,66 @@ The generator supports a wide range of programming languages and file types:
 - **Scripts**: `.sh`, `.ps1`, `.bat`
 - **And many more...**
 
+## Color-Coded Diagrams
+
+The generator creates beautiful, color-coded Mermaid diagrams that make it easy to understand your codebase architecture at a glance:
+
+- 🟠 **Orange (#e17055)** - Tests and testing suites
+- 🟡 **Yellow (#fdcb6e)** - Configuration files and tools  
+- 🔵 **Blue (#0984e3)** - Core functionality or business logic
+- 🟢 **Green (#55efc4)** - LLM related components
+- 🟣 **Purple (#6c5ce7)** - Output and rendering components
+
+You can customize these colors in your `mermaid_generator_config.yaml` file. The LLM automatically applies the appropriate colors based on the component type, making your diagrams more readable and professional-looking.
+
+## Customizing LLM Analysis
+
+You can provide additional context and instructions to the LLM to customize how it analyzes your codebase. Add the `additional_instructions` field to your `mermaid_generator_config.yaml`:
+
+```yaml
+llm:
+  provider: "openai"
+  model: "gpt-5"
+  max_tokens: 100000
+  temperature: 0.1
+  additional_instructions: |
+    Focus on the microservices architecture and API endpoints.
+    Pay special attention to database connections and data flow.
+    Highlight any security-related components or authentication flows.
+    Emphasize the relationship between frontend and backend services.
+```
+
+### Example Use Cases
+
+**For API Documentation:**
+```yaml
+additional_instructions: |
+  Focus on REST API endpoints, request/response patterns, and data models.
+  Include HTTP methods, status codes, and authentication requirements.
+  Highlight API versioning and rate limiting mechanisms.
+```
+
+**For Security Analysis:**
+```yaml
+additional_instructions: |
+  Identify security-related components, authentication mechanisms, and authorization flows.
+  Highlight data encryption, input validation, and security middleware.
+  Pay attention to sensitive data handling and compliance requirements.
+```
+
+**For Performance Optimization:**
+```yaml
+additional_instructions: |
+  Focus on performance-critical components, caching mechanisms, and database queries.
+  Identify potential bottlenecks, async processing, and optimization opportunities.
+  Highlight monitoring, logging, and observability features.
+```
+
 ## LLM Providers
 
 ### OpenAI
 ```bash
-mermaid-gen --llm-provider openai --llm-model gpt-4 --llm-api-key YOUR_OPENAI_API_KEY
+mermaid-gen --llm-provider openai --llm-model gpt-5 --llm-api-key YOUR_OPENAI_API_KEY
 ```
 
 ### Claude (Anthropic)
@@ -246,7 +357,7 @@ mermaid-gen --file-types "ts,js,json" --output "docs/architecture.mermaid"
 
 ### Large C# Solution
 ```bash
-mermaid-gen --file-types "cs,csproj,sln" --token-limit 60000 --output "docs/solution-architecture.mermaid"
+mermaid-gen --file-types "cs,csproj,sln" --token-limit 100000 --output "docs/solution-architecture.mermaid"
 ```
 
 ### Python Microservices

@@ -5,14 +5,14 @@ export class BucketManager {
   private tokenCalculator: TokenCalculator;
   private maxTokensPerBucket: number;
   private tokenThreshold: number; // Percentage of max tokens to trigger bucket processing
-      private hardLimit: number; // Hard limit per bucket (400k tokens to match GPT-5's context window)
+      private hardLimit: number; // Hard limit per bucket (100k tokens optimized for GPT-5's context window)
   private skippedFiles: Array<{ path: string; size: number; reason: string }> = [];
 
   constructor(maxTokensPerBucket: number, tokenThreshold: number = 0.9) {
     this.tokenCalculator = new TokenCalculator();
     this.maxTokensPerBucket = maxTokensPerBucket;
     this.tokenThreshold = tokenThreshold;
-        this.hardLimit = 400000; // 400k token hard limit to match GPT-5's context window
+        this.hardLimit = 100000; // 100k token hard limit optimized for GPT-5's context window
   }
 
   /**

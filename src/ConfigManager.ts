@@ -7,7 +7,7 @@ export class ConfigManager {
   private config: Config;
   private configPath: string;
 
-  constructor(configPath: string = 'config.yml') {
+  constructor(configPath: string = 'mermaid_generator_config.yaml') {
     this.configPath = configPath;
     this.config = this.getDefaultConfig();
   }
@@ -53,13 +53,21 @@ export class ConfigManager {
         llm: {
           provider: 'openai',
           model: 'gpt-5',
-          max_tokens: 400000, // Updated default to match GPT-5's context window
-          temperature: 0.1
+          max_tokens: 100000, // Optimized for GPT-5's context window
+          temperature: 0.1,
+          additional_instructions: '' // Additional context/instructions for the LLM
         },
       output: {
         format: 'mermaid',
         file_path: 'repo.mermaid',
         include_summary: true
+      },
+      colors: {
+        tests: '#e17055',        // Orange for tests and testing suites
+        config: '#fdcb6e',       // Yellow for configuration files and tools
+        core: '#0984e3',         // Blue for core functionality or business logic
+        llm: '#55efc4',          // Green for LLM related stuff
+        output: '#6c5ce7'        // Purple for output stuff
       },
       github: {
         branch: 'mermaid-update',
@@ -81,7 +89,8 @@ export class ConfigManager {
         provider: fileConfig.llm?.provider || defaultConfig.llm.provider,
         model: fileConfig.llm?.model || defaultConfig.llm.model,
         max_tokens: fileConfig.llm?.max_tokens || defaultConfig.llm.max_tokens,
-        temperature: fileConfig.llm?.temperature || defaultConfig.llm.temperature
+        temperature: fileConfig.llm?.temperature || defaultConfig.llm.temperature,
+        additional_instructions: fileConfig.llm?.additional_instructions || defaultConfig.llm.additional_instructions
       },
       output: {
         format: fileConfig.output?.format || defaultConfig.output.format,
@@ -89,6 +98,13 @@ export class ConfigManager {
         include_summary: fileConfig.output?.include_summary !== undefined 
           ? fileConfig.output.include_summary 
           : defaultConfig.output.include_summary
+      },
+      colors: {
+        tests: fileConfig.colors?.tests || defaultConfig.colors.tests,
+        config: fileConfig.colors?.config || defaultConfig.colors.config,
+        core: fileConfig.colors?.core || defaultConfig.colors.core,
+        llm: fileConfig.colors?.llm || defaultConfig.colors.llm,
+        output: fileConfig.colors?.output || defaultConfig.colors.output
       },
       github: {
         branch: fileConfig.github?.branch || defaultConfig.github.branch,
@@ -110,13 +126,15 @@ export class ConfigManager {
         provider: args.llmProvider || config.llm.provider,
         model: args.llmModel || config.llm.model,
         max_tokens: args.tokenLimit || config.llm.max_tokens,
-        temperature: config.llm.temperature
+        temperature: config.llm.temperature,
+        additional_instructions: config.llm.additional_instructions
       },
       output: {
         format: config.output.format,
         file_path: args.outputPath || config.output.file_path,
         include_summary: config.output.include_summary
       },
+      colors: config.colors,
       github: {
         branch: args.githubBranch || config.github.branch,
         commit_message: config.github.commit_message,

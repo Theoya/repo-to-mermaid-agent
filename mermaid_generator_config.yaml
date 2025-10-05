@@ -1,0 +1,93 @@
+# Mermaid Generator Configuration
+# This file contains all the settings for generating Mermaid diagrams from your codebase
+
+# File types to include in analysis
+file_types:
+  - .ts
+  - .js
+  - .tsx
+  - .jsx
+  - .py
+  - .java
+  - .cs
+  - .go
+  - .rs
+  - .cpp
+  - .c
+  - .h
+  - .hpp
+  - .php
+  - .rb
+  - .swift
+  - .kt
+  - .scala
+  - .clj
+  - .hs
+  - .ml
+  - .fs
+  - .vb
+  - .sql
+  - .sh
+  - .ps1
+  - .bat
+  - .yaml
+  - .yml
+  - .json
+  - .xml
+  - .html
+  - .css
+  - .scss
+  - .less
+  - .vue
+  - .svelte
+  - .astro
+
+# Directories and files to always exclude (node_modules is always ignored)
+exclude_patterns:
+  - node_modules
+  - .git
+  - dist
+  - build
+  - target
+  - bin
+  - obj
+  - .next
+  - .nuxt
+  - .cache
+  - .parcel-cache
+  - coverage
+  - .nyc_output
+  - .vscode
+  - .idea
+  - "*.log"
+  - "*.tmp"
+  - "*.temp"
+  - "*.min.js"
+  - "*.min.css"
+
+# LLM Configuration
+llm:
+  provider: "openai"
+  model: "gpt-5"
+  max_tokens: 100000  # Optimized for GPT-5's context window
+  temperature: 0.1
+  additional_instructions: ""  # Add custom instructions for your codebase analysis
+
+output:
+  format: "mermaid"
+  file_path: "repo.mermaid"
+  include_summary: true
+
+# Color scheme for Mermaid diagrams
+colors:
+  tests: "#e17055"        # Orange for tests and testing suites
+  config: "#fdcb6e"       # Yellow for configuration files and tools
+  core: "#0984e3"         # Blue for core functionality or business logic
+  llm: "#55efc4"          # Green for LLM related stuff
+  output: "#6c5ce7"       # Purple for output stuff
+
+github:
+  branch: "mermaid-update"
+  commit_message: "Update Mermaid diagram"
+  pr_title: "Update repository architecture diagram"
+  pr_body: "Automatically generated Mermaid diagram of the codebase architecture"

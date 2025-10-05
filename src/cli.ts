@@ -21,10 +21,10 @@ program
   .version('1.0.0');
 
 program
-  .option('-t, --token-limit <number>', 'Token limit per processing batch', '400000') // Updated default to match GPT-5's context window
+  .option('-t, --token-limit <number>', 'Token limit per processing batch', '100000') // Optimized for GPT-5's context window
   .option('-f, --file-types <types>', 'Comma-separated list of file extensions', '')
   .option('-o, --output <path>', 'Output file path', 'repo.mermaid')
-  .option('-c, --config <path>', 'Configuration file path', 'config.yml')
+  .option('-c, --config <path>', 'Configuration file path', 'mermaid_generator_config.yaml')
   .option('-r, --recursive', 'Process files recursively', true)
   .option('-s, --specific-files <files>', 'Comma-separated list of specific files to process', '')
   .option('-e, --existing-mermaid <path>', 'Path to existing Mermaid file to build upon', '')
@@ -98,7 +98,9 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
       args.llmApiKey,
       config.llm.model,
       config.llm.max_tokens,
-      config.llm.temperature
+      config.llm.temperature,
+      config.colors,
+      config.llm.additional_instructions
     );
     const mermaidGenerator = new MermaidGenerator(
       llmClient,
