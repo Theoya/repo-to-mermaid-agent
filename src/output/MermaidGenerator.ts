@@ -53,11 +53,13 @@ export class MermaidGenerator {
         bucket!.mermaid_content = response.mermaid_content;
 
         // Accumulate results
+        // Accumulate results
         state.accumulated_summary = this.mergeSummaries(
           state.accumulated_summary,
           response.summary
         );
-        state.accumulated_mermaid = this.mergeMermaidDiagrams(
+        // Defer diagram merging to LLM; collect fragments
+        state.accumulated_mermaid = this.appendMermaidFragment(
           state.accumulated_mermaid,
           response.mermaid_content
         );
@@ -81,7 +83,7 @@ export class MermaidGenerator {
     state: ProcessingState,
     skippedFiles?: Array<{ path: string; size: number; reason: string }>
   ): Promise<string> {
-    const content = this.buildFinalMermaidContent(state, skippedFiles);
+    const content = await this.buildFinalMermaidContent(state, skippedFiles);
     await this.writeMermaidFile(content);
     return content;
   }
@@ -164,14 +166,17 @@ export class MermaidGenerator {
   /**
    * Build final Mermaid content
    */
-  private buildFinalMermaidContent(
+  private async buildFinalMermaidContent(
     state: ProcessingState,
     skippedFiles?: Array<{ path: string; size: number; reason: string }>
-  ): string {
+  ): Promise<string> {
     let content = '';
 
     // Start with the Mermaid diagram first (for GitHub compatibility)
-    const sanitizedMermaid = this.sanitizeMermaidContent(state.accumulated_mermaid);
+    // Merge/repair via LLM using collected fragments
+    const fragments = this.collectFragments(state.accumulated_mermaid);
+    const merged = await this.llmClient.mergeOrRepairMermaid('', fragments);
+    const sanitizedMermaid = this.sanitizeMermaidContent(merged);
     content += sanitizedMermaid;
     
     // Validate the sanitized content
@@ -233,146 +238,20 @@ export class MermaidGenerator {
   /**
    * Merge multiple Mermaid diagrams into one
    */
-  private mergeMermaidDiagrams(existing: string, newDiagram: string): string {
-    if (!existing) {
-      return newDiagram;
-    }
-
-    if (!newDiagram) {
-      return existing;
-    }
-
-    // Try to merge diagrams intelligently
-    return this.intelligentDiagramMerge(existing, newDiagram);
+  // Collect fragments in a simple serialized form for LLM merging
+  private appendMermaidFragment(existing: string, fragment: string): string {
+    if (!fragment) return existing;
+    if (!existing) return fragment;
+    return `${existing}\n\n--- FRAGMENT ---\n\n${fragment}`;
   }
 
-  /**
-   * Intelligently merge two Mermaid diagrams
-   */
-  private intelligentDiagramMerge(existing: string, newDiagram: string): string {
-    // Parse diagram types
-    const existingType = this.getDiagramType(existing);
-    const newType = this.getDiagramType(newDiagram);
-
-    // If same type, try to merge
-    if (existingType === newType && existingType !== 'unknown') {
-      return this.mergeSameTypeDiagrams(existing, newDiagram, existingType);
-    }
-
-    // If different types, create a compound diagram
-    return this.createCompoundDiagram(existing, newDiagram);
+  private collectFragments(serialized: string): string[] {
+    if (!serialized) return [];
+    const parts = serialized.split(/\n\n--- FRAGMENT ---\n\n/);
+    return parts.filter(p => p.trim().length > 0);
   }
 
-  /**
-   * Get diagram type from content
-   */
-  private getDiagramType(content: string): string {
-    const lowerContent = content.toLowerCase();
-    
-    if (lowerContent.startsWith('graph') || lowerContent.startsWith('flowchart')) {
-      return 'flowchart';
-    } else if (lowerContent.startsWith('classdiagram')) {
-      return 'classdiagram';
-    } else if (lowerContent.startsWith('sequencediagram')) {
-      return 'sequencediagram';
-    } else if (lowerContent.startsWith('statediagram')) {
-      return 'statediagram';
-    } else if (lowerContent.startsWith('erdiagram')) {
-      return 'erdiagram';
-    } else if (lowerContent.startsWith('journey')) {
-      return 'journey';
-    } else if (lowerContent.startsWith('gantt')) {
-      return 'gantt';
-    } else if (lowerContent.startsWith('pie')) {
-      return 'pie';
-    } else if (lowerContent.startsWith('gitgraph')) {
-      return 'gitgraph';
-    }
-
-    return 'unknown';
-  }
-
-  /**
-   * Merge diagrams of the same type
-   */
-  private mergeSameTypeDiagrams(existing: string, newDiagram: string, type: string): string {
-    // For flowcharts, try to merge nodes and connections
-    if (type === 'flowchart') {
-      return this.mergeFlowcharts(existing, newDiagram);
-    }
-
-    // For other types, append with separator
-    return `${existing}\n\n--- Additional ${type} ---\n\n${newDiagram}`;
-  }
-
-  /**
-   * Merge two flowcharts
-   */
-  private mergeFlowcharts(existing: string, newDiagram: string): string {
-    // Extract nodes and connections from both diagrams
-    const existingNodes = this.extractNodes(existing);
-    const newNodes = this.extractNodes(newDiagram);
-    const existingConnections = this.extractConnections(existing);
-    const newConnections = this.extractConnections(newDiagram);
-
-    // Create merged diagram
-    let merged = 'flowchart TD\n';
-    
-    // Add all unique nodes
-    const allNodes = new Set([...existingNodes, ...newNodes]);
-    for (const node of allNodes) {
-      merged += `  ${node}\n`;
-    }
-
-    // Add all connections
-    const allConnections = new Set([...existingConnections, ...newConnections]);
-    for (const connection of allConnections) {
-      merged += `  ${connection}\n`;
-    }
-
-    return merged;
-  }
-
-  /**
-   * Extract nodes from flowchart
-   */
-  private extractNodes(content: string): string[] {
-    const lines = content.split('\n');
-    const nodes: string[] = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('flowchart') && !trimmed.includes('-->') && !trimmed.includes('---')) {
-        nodes.push(trimmed);
-      }
-    }
-
-    return nodes;
-  }
-
-  /**
-   * Extract connections from flowchart
-   */
-  private extractConnections(content: string): string[] {
-    const lines = content.split('\n');
-    const connections: string[] = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && (trimmed.includes('-->') || trimmed.includes('---'))) {
-        connections.push(trimmed);
-      }
-    }
-
-    return connections;
-  }
-
-  /**
-   * Create compound diagram from different types
-   */
-  private createCompoundDiagram(existing: string, newDiagram: string): string {
-    return `${existing}\n\n--- Additional Diagram ---\n\n${newDiagram}`;
-  }
+  // Removed local merge helpers in favor of LLM-driven merge
 
   /**
    * Validate Mermaid syntax

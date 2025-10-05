@@ -57,6 +57,14 @@ export abstract class LLMInterface {
   ): Promise<string>;
 
   /**
+   * Merge and repair multiple Mermaid fragments into a single, GitHub-compatible diagram
+   */
+  abstract mergeOrRepairMermaid(
+    existingMermaid: string,
+    fragments: string[]
+  ): Promise<string>;
+
+  /**
    * Validate API key and model availability
    */
   abstract validateConnection(): Promise<boolean>;

@@ -218,6 +218,70 @@ Return only the Mermaid diagram code, without any markdown formatting or explana
   }
 
   /**
+   * Merge and repair multiple Mermaid fragments using the LLM
+   */
+  async mergeOrRepairMermaid(existingMermaid: string, fragments: string[]): Promise<string> {
+    const systemPrompt = `You are an expert at producing valid, GitHub-compatible Mermaid diagrams.
+
+Rules:
+- Output must be a single valid Mermaid diagram.
+- Do NOT use edge labels like -->|label|.
+- Use only supported types (flowchart, graph, sequenceDiagram, classDiagram, stateDiagram, erDiagram).
+- Quote labels with spaces/special chars: Node["Label with spaces"].
+- Escape special characters: & < > # + - = as HTML entities when inside labels.
+- Prefer a single flowchart unless fragments clearly use another shared type.
+`;
+
+    let userPrompt = `Merge and repair these Mermaid fragments into one diagram. Ensure no syntax errors and GitHub compatibility. If 'existingMermaid' is non-empty, prefer merging into it.
+
+Existing:
+\n\n${existingMermaid}\n\nFragments:\n`;
+    for (const frag of fragments) {
+      userPrompt += `\n---\n${frag}\n`;
+    }
+
+    try {
+      let response;
+      if (this.model === 'gpt-5') {
+        response = await (this.client as any).responses.create({
+          model: this.model,
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: `${systemPrompt}\n\n${userPrompt}` }] }
+          ],
+          text: { format: { type: 'text' } },
+          reasoning: { effort: 'medium' },
+          tools: [],
+          store: false
+        });
+      } else {
+        response = await this.client.chat.completions.create({
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: Math.min(this.maxTokens, 3000),
+          temperature: this.temperature
+        });
+      }
+
+      let content;
+      if (this.model === 'gpt-5') {
+        const outputText = (response as any).output?.find((item: any) => 
+          item.type === 'message' && item.content?.[0]?.type === 'output_text'
+        );
+        content = outputText?.content?.[0]?.text || '';
+      } else {
+        content = (response as any).choices[0]?.message?.content || '';
+      }
+
+      return this.cleanMermaidContent(content);
+    } catch (error) {
+      throw new Error(`OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Validate API key and model availability
    */
   async validateConnection(): Promise<boolean> {

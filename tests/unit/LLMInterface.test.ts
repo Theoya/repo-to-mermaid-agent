@@ -38,6 +38,12 @@ class MockLLMClient extends LLMInterface {
   estimateCost(inputTokens: number, outputTokens: number): number {
     return (inputTokens + outputTokens) * 0.001;
   }
+
+  async mergeOrRepairMermaid(existingMermaid: string, fragments: string[]): Promise<string> {
+    const base = existingMermaid && existingMermaid.trim().length > 0 ? existingMermaid : 'flowchart TD\nA[Test] --> B[Result]';
+    if (!fragments || fragments.length === 0) return base;
+    return `${base}\n\n${fragments.join('\n\n')}`;
+  }
 }
 
 describe('LLMInterface', () => {

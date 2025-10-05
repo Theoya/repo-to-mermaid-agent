@@ -60,7 +60,7 @@ export class ConfigManager {
       output: {
         format: 'mermaid',
         file_path: 'repo.mermaid',
-        include_summary: true
+        include_summary: false
       },
       colors: {
         tests: '#e17055',        // Orange for tests and testing suites

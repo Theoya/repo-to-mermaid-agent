@@ -1,220 +1,211 @@
-flowchart TD
-  cli(("CLI"))
-  configMgr["ConfigManager"]
-  configFile["config.yml"]
-  bucketMgr["BucketManager"]
-  typesPB["ProcessingBucket[]"]
-  typesPS["ProcessingState"]
-  llmIfc["LLMInterface (abstract)"]
-  openaiClient["OpenAIClient"]
-  openaiSDK["openai SDK"]
-  mermaidGen["MermaidGenerator"]
-  fsExtra["fs&minus;extra"]
-  validator["ValidateMermaid"]
-  decisionValid{"Valid"}
-  sanitizer["SanitizeMermaid"]
-  merger["MergeDiagrams"]
-  accumulator["Accumulate Summary &amp; Mermaid"]
-  output(("Output"))
-  testsUnit["Unit Tests"]
-  testsIntegration["Integration Tests"]
-  openaiClient -- llmIfc
-  decisionValid -- sanitizer
-  testsUnit -- bucketMgr
-  testsUnit -- configMgr
-  testsIntegration -- cli
-  testsIntegration -- openaiClient
+flowchart TB
+  subgraph CFG["Configuration"]
+    CM["ConfigManager"]
+    YAML["YAML Parser (yaml)"]
+    FSIO["File IO (fs&amp;&num;45;extra)"]
+  end
+  subgraph CORE["Core Processing"]
+    CLI["CLI Entry (src/cli.ts)"]
+    FD["FileDiscovery (glob/fs)"]
+    TC["TokenCalculator (estimation)"]
+    BM["BucketManager (token bucketing &amp;amp; splitting)"]
+    TYPES["Types: FileInfo, ProcessingBucket, Config"]
+  end
+  subgraph LLM["LLM Layer"]
+    LLMIF["LLMInterface (abstract)"]
+    OAIC["OpenAIClient (provider)"]
+    OAI["OpenAI SDK (openai)"]
+  end
+  subgraph OUT["Output &amp;amp; Rendering"]
+    MG["MermaidGenerator (merge/sanitize/validate)"]
+    WRITER["Mermaid Writer"]
+    SM["StateManager (progress/checkpoints)"]
+    OUTFILE(("Output Diagram: repo.mermaid"))
+  end
+  subgraph GIT["GitHub Integration"]
+    GAH["GitHubActionHandler (workflow)"]
+    GHC["GitHubClient (Octokit)"]
+    GH["GitHub Platform"]
+  end
+  subgraph TESTS["Tests"]
+    IT["Integration Test (full&amp;&num;45;integration.test.js)"]
+    TCFG["Unit Test: ConfigManager"]
+    TFD["Unit Test: FileDiscovery"]
+    TTC["Unit Test: TokenCalculator"]
+    TBM["Unit Test: BucketManager"]
+    TLLMIF["Unit Test: LLMInterface"]
+    TOAIC["Unit Test: OpenAIClient"]
+  end
+  %% Orchestration & data flow
+  CLI --> CM
+  CM --> YAML
+  CM --> FSIO
+  CLI --> FD
+  FD --> TC
+  CLI --> BM
+  BM --> TC
+  BM --> TYPES
+  CLI --> MG
+  MG --> OAIC
+  LLMIF --> OAIC
+  OAIC --> OAI
+  MG --> WRITER
+  OAIC --> WRITER
+  WRITER --> FSIO
+  WRITER --> OUTFILE
+  %% Filesystem interactions
+  FD --> FSIO
+  SM --> FSIO
+  %% GitHub Action workflow
+  GAH --> GHC
+  GAH --> FD
+  GAH --> BM
+  GAH --> OAIC
+  GAH --> MG
+  GHC --> GH
+  %% Tests coverage
+  IT --> CLI
+  IT --> MG
+  IT --> WRITER
+  IT --> OUTFILE
+  TCFG --> CM
+  TFD --> FD
+  TTC --> TC
+  TBM --> BM
+  TLLMIF --> LLMIF
+  TOAIC --> OAIC
+  %% Styles
   classDef tests fill:#e17055,stroke:#ffffff,stroke-width:2px
   classDef config fill:#fdcb6e,stroke:#ffffff,stroke-width:2px
   classDef core fill:#0984e3,stroke:#ffffff,stroke-width:2px
   classDef llm fill:#55efc4,stroke:#ffffff,stroke-width:2px
   classDef output fill:#6c5ce7,stroke:#ffffff,stroke-width:2px
-  class cli,typesPB,typesPS,bucketMgr core
-  class mermaidGen,validator,sanitizer,merger,accumulator,output output
-  class llmIfc,openaiClient,openaiSDK llm
-  class configMgr,configFile,fsExtra config
-  class testsUnit,testsIntegration tests
-  ghAction["GitHubActionHandler"]
-  yamlFile["mermaid_generator_config.yaml"]
-  fileDiscovery["FileDiscovery"]
-  tokenCalc["TokenCalculator"]
-  typesIndex["types/index.ts"]
-  stateMgr["StateManager"]
-  ghClient["GitHubClient (Octokit)"]
-  ghRepo(("GitHub Repo"))
-  decValid{"Valid config?"}
-  branchExists{"Branch exists?"}
-  existingPR{"Existing PR?"}
-  output(("repo.mermaid"))
-  testsIntegration["Integration Test"]
-  class cli,fileDiscovery,bucketMgr,tokenCalc,typesIndex,typesPB,stateMgr core
-  class configMgr,yamlFile,fsExtra config
-  class mermaidGen,output,ghAction,ghClient,ghRepo output
-  cli --> configMgr
-  configMgr --> configFile
-  cli --> bucketMgr
-  bucketMgr --> typesPB
-  typesPB --> mermaidGen
-  typesPS --> mermaidGen
-  cli --> openaiClient
-  mermaidGen --> llmIfc
-  openaiClient --> openaiSDK
-  cli --> mermaidGen
-  mermaidGen --> validator
-  validator --> decisionValid
-  decisionValid --> merger
-  sanitizer --> merger
-  merger --> accumulator
-  mermaidGen --> fsExtra
-  mermaidGen --> output
-  configMgr --> yamlFile
-  configMgr --> decValid
-  decValid --> fileDiscovery
-  cli --> fileDiscovery
-  fileDiscovery --> fsExtra
-  fileDiscovery --> bucketMgr
-  fileDiscovery --> typesIndex
-  bucketMgr --> tokenCalc
-  bucketMgr --> typesIndex
-  mermaidGen --> openaiClient
-  mermaidGen --> stateMgr
-  mermaidGen --> typesIndex
-  ghAction --> ghClient
-  ghAction --> fileDiscovery
-  ghAction --> bucketMgr
-  ghAction --> openaiClient
-  ghAction --> mermaidGen
-  ghClient --> branchExists
-  branchExists --> ghClient
-  ghClient --> existingPR
-  existingPR --> ghClient
-  ghClient --> output
-  ghClient --> ghRepo
-  testsUnit --> configMgr
-  testsUnit --> fileDiscovery
-  testsUnit --> bucketMgr
-  testsUnit --> tokenCalc
-  testsUnit --> openaiClient
-  testsUnit --> llmIfc
-  testsIntegration --> cli
+  %% Class assignments
+  class CM,YAML,FSIO config
+  class CLI,FD,TC,BM,TYPES core
+  class LLMIF,OAIC,OAI llm
+  class MG,WRITER,SM,OUTFILE,GAH,GHC,GH output
+  class IT,TCFG,TFD,TTC,TBM,TLLMIF,TOAIC tests
 
 <!--
 Generated Mermaid Diagram
 ========================
 
 Summary:
-Architecture overview
+The codebase implements a CLI-driven system that analyzes a repository, batches files by estimated token usage, and uses an LLM to generate an architectural summary and a GitHub‑compatible Mermaid diagram.
 
-The repository implements a CLI-driven tool that analyzes source code and produces a sanitized, GitHub-compatible Mermaid diagram along with an architectural summary. The system is organized around a clear separation of concerns: core orchestration (CLI and managers), LLM provider abstraction, and output/rendering.
+Key architectural layers and components:
 
-Key components and responsibilities
+1) CLI Orchestration (core)
+- The CLI entrypoint (src/cli.ts, inferred from tests) coordinates the end-to-end flow: loads configuration, discovers files, estimates tokens, groups files into buckets, invokes the LLM for summaries/diagrams, merges/repairs fragments if needed, and writes the final Mermaid output file.
 
-- Core orchestration and domain
-  - CLI (src/cli.ts, referenced in tests): Entry point coordinating the run. It loads configuration, discovers files, buckets them by estimated tokens, selects an LLM provider, and delegates to the output generator. It acts as the composition root.
-  - BucketManager (src/core/BucketManager, inferred from tests): Groups files into ProcessingBucket arrays under a soft token limit (configurable) and a hard safety ceiling (~400k tokens). It supports: createBuckets, isBucketReady, capacity checks, add/remove files, split/merge strategies, statistics, and optimizations. It tracks skipped files that exceed hard limits and returns a summary for transparency. This component encapsulates batching heuristics and protects downstream LLM calls from overflows.
-  - Types (src/types, inferred): Provides FileInfo, ProcessingBucket, ProcessingState. ProcessingState tracks iterative progress (current bucket index, totals, accumulated summary and Mermaid, etc.).
+2) Configuration subsystem (config)
+- ConfigManager (src/ConfigManager, tested) loads YAML config via fs-extra and yaml, merges CLI args with file config, and provides validation and defaults. It supports saving configs and creating sample configs. It exposes provider/model defaults, supported file types/providers, and respects CLI overrides.
+- Behavior from tests:
+  - loadConfig: falls back to defaults if no file or read error; merges CLI args over file config.
+  - saveConfig: writes YAML; errors are surfaced with clear messages.
+  - validateConfig: verifies file_types, llm.provider, llm.max_tokens (>0), llm.temperature in [0,2], etc.
+  - Utility getters: supported file types/providers, default models, config path management.
 
-- LLM abstraction and provider
-  - LLMInterface (src/llm/LLMInterface, inferred): An abstraction for code analysis and diagram generation. It defines processBucket and likely shared helpers such as parseResponse and cleanMermaidContent, used by provider implementations.
-  - OpenAIClient (src/llm/OpenAIClient.js): Concrete provider extending LLMInterface. It adapts to OpenAI’s APIs:
-    - Chat Completions for most models
-    - Responses API for gpt-5
-    It builds system and user prompts, calls the model, parses output (delegates to base helpers), returns a structured result with summary, sanitized Mermaid, and token usage. It can validate connectivity, list models, perform a test call, and estimate cost. This follows a Strategy/Adapter pattern: LLMInterface defines the contract; OpenAIClient implements provider-specific logic behind a uniform interface.
+3) Core processing (core)
+- BucketManager (src/core/BucketManager, tested) groups files into ProcessingBuckets based on token limits and a readiness threshold. Features include:
+  - createBuckets: token-aware grouping respecting a per-bucket soft limit and a global hard limit (~400k tokens in tests).
+  - isBucketReady/isBucketAtCapacity/getBucketUtilization: readiness and utilization checks.
+  - add/remove files, split over-capacity buckets, and merge when feasible.
+  - optimizeBuckets: improves distribution under the token cap.
+  - Skipped file tracking: files exceeding hard limits are skipped with a summary; supports clearing this state.
+  - Statistics: totals, averages, and utilization across buckets.
 
-- Output and rendering
-  - MermaidGenerator (src/output/MermaidGenerator.ts): Orchestrates bucket-by-bucket analysis, merges summary text, and merges Mermaid fragments into a single diagram. Core capabilities:
-    - processBuckets: Iterates over ProcessingBucket[], calls llmClient.processBucket, aggregates summary and diagram content, updates ProcessingState.
-    - Sanitization and GitHub compatibility: sanitizeMermaidContent removes unsupported arrow label syntax (e.g., -->|label|), quotes labels with special characters, escapes reserved characters (&, <, >, =, #, +, -), and normalizes whitespace.
-    - Merging: mergeSummaries concatenates sections; mergeMermaidDiagrams tries intelligentDiagramMerge. For flowcharts, it extracts nodes and connections, deduplicates, and rebuilds a coherent flowchart. For heterogeneous diagram types, it creates compound sections.
-    - Validation: validateMermaidSyntax performs basic checks: non-empty content, presence of a valid diagram directive (graph/flowchart/classDiagram/sequenceDiagram/stateDiagram/erDiagram/journey/gantt/pie/gitgraph), and balanced brackets/parentheses.
-    - Output: buildFinalMermaidContent constructs the final diagram first (to support GitHub renderers) with optional metadata comments. writeMermaidFile persists the diagram using fs-extra.
+4) LLM integration (llm)
+- LLMInterface (abstract, inferred): provides common behaviors such as prompt construction (createSystemPrompt/createUserPrompt), response parsing (parseResponse), and Mermaid cleanup (cleanMermaidContent). It standardizes provider behavior and supports the Strategy pattern for different providers.
+- OpenAIClient (src/llm/OpenAIClient.ts and compiled JS variant): implements the LLM provider using the official OpenAI SDK.
+  - processBucket: produces {summary, mermaid_content, tokens_used}. Uses Chat Completions for GPT‑4/3.5 and the Responses API path for a GPT‑5 placeholder, parsing responses accordingly.
+  - generateSummary: produces a concise architecture summary for a set of files.
+  - generateMermaid: creates a Mermaid diagram from a summary and a subset of key files; returns cleaned, GitHub‑compatible Mermaid.
+  - mergeOrRepairMermaid (TS version): merges multiple Mermaid fragments into a single, GitHub‑compatible diagram, enforcing strict syntax rules (no edge labels like -->|label|, permitted diagram types only, quoted labels with spaces, escaping special characters, etc.).
+  - validateConnection/getAvailableModels/testConnection: diagnostics to list models and validate connectivity.
+  - estimateCost: rough token-based cost estimation per model family.
 
-- Configuration
-  - ConfigManager (src/ConfigManager, inferred, tested in dist-tests/unit/ConfigManager.test.js): Manages YAML configuration. It loads defaults when no file exists, merges/overrides with CLI args, validates constraints (file types present, LLM provider/model validity, token/temperature ranges), and can save a fully resolved config. It exposes supported file types/providers and default models per provider.
+5) Output and rendering (output)
+- Final Mermaid content is written to an output file (e.g., repo.mermaid) using fs-extra. The system prioritizes GitHub Mermaid syntax compatibility.
 
-- Tests
-  - Unit tests (tests/unit and dist-tests/unit): Jest-based tests verify BucketManager’s bucketing heuristics, capacity rules, optimization, and skipped files handling; ConfigManager’s load/merge/validate/save logic.
-  - Integration test (dist-tests/integration/full-integration.test.js): Assembles a small TypeScript repo in a temp directory, runs the CLI via npx ts-node, and validates that a Mermaid file is produced (when OPENAI_API_KEY is present). This validates end-to-end flow, including file discovery, bucketing, LLM invocation, and diagram output.
+6) Tests (tests)
+- Unit tests cover ConfigManager and BucketManager behaviors (loading/merging/validation/saving for config; bucketing, capacity, merging/splitting, stats, optimization, and skipped files for buckets).
+- Integration test scaffolds a miniature TypeScript project (services, models, database, UI component), runs the CLI via ts-node, verifies diagram generation, handles empty directories, specific file lists, and dry-run behavior. It guards on OPENAI_API_KEY presence and asserts Mermaid-like content is produced.
 
-Data and control flow
+Notable design considerations and patterns:
+- Strategy/Adapter for LLM providers via LLMInterface and OpenAIClient. The OpenAIClient adapts SDK differences (Chat Completions vs. Responses API). Error handling wraps SDK exceptions with clear messages.
+- Token-aware batching enables scalability for large codebases. The hard-limit safeguard avoids API failures, while optimize/split/merge operations improve utilization.
+- Configuration merging prioritizes CLI args, enabling reproducible and parameterized runs. Validation proactively guards misconfiguration.
+- Mermaid compatibility rules are embedded in prompts and cleanup, targeting GitHub’s stricter Mermaid support.
 
-1) CLI discovers files and estimates tokens. Files are passed to BucketManager to form ProcessingBucket[].
-2) CLI constructs an LLM provider (e.g., OpenAIClient) via LLMInterface and instantiates MermaidGenerator with this client.
-3) MermaidGenerator.processBuckets iterates buckets, calling llmClient.processBucket(bucket, accumulatedSummary, accumulatedMermaid). The provider returns a summary and diagram fragment per bucket.
-4) MermaidGenerator merges summaries and diagrams, sanitizes for GitHub Mermaid compatibility, optionally validates, and writes the final repo.mermaid (or configured path).
-5) ConfigManager contributes runtime configuration including provider, model, token limits, output path, and tool behavior.
-
-Design patterns and decisions
-
-- Strategy/Adapter: LLMInterface abstracts provider details; OpenAIClient adapts OpenAI APIs.
-- Pipeline/orchestration: MermaidGenerator acts as the coordinator for iterative analysis and accumulation.
-- Defensive engineering: token thresholds in BucketManager; sanitizeMermaidContent ensures GitHub-compatible Mermaid; validateMermaidSyntax performs basic quality checks.
-- Testability: Unit tests isolate managers; Integration test validates CLI, provider wiring, and output.
-
-External dependencies
-
-- openai SDK: Used by OpenAIClient for model listing and generation (chat or responses).
-- fs-extra, path: File I/O and safe directory creation for output.
-- yaml: Config read/write.
-- jest: Testing.
-
-Resulting artifact
-
-- A single Mermaid diagram file (default repo.mermaid) that merges multi-bucket analysis into a consistent, sanitized, and renderable diagram, with optional summary and processing metadata appended as comments.
+Data flow overview:
+- CLI loads/validates config → discovers and parses files → estimates tokens → BucketManager creates optimized buckets → per bucket, OpenAIClient generates summaries and Mermaid fragments → optional merge/repair to a single diagram → output file is written (and optionally published to GitHub PR paths as indicated by config fields, though the publishing logic is not shown in provided files).
 
 --- Additional Analysis ---
 
-Architecture and relationships
+Architecture overview:
 
-Entry points
-- CLI (src/cli.ts, composition root): Orchestrates a local run. It parses CLI args, loads/validates configuration, discovers files, prepares buckets, initializes the LLM provider, and drives Mermaid generation and state persistence. It can optionally consume an existing Mermaid file to incrementally extend the diagram.
-- GitHubActionHandler (src/github/GitHubActionHandler.ts): Composition root for CI. It validates GitHub connectivity, manages branches, reads any existing diagram from the repo, processes the codebase (via the same discovery/bucketing/LLM/generator flow), commits the new diagram, and creates/updates a PR with labels and comments.
+The system is a CLI-driven pipeline that discovers code files, buckets them by estimated token usage, invokes an LLM to synthesize an architectural summary and Mermaid diagram fragments, merges and sanitizes the diagram for GitHub compatibility, and writes the final output. It can optionally run as a GitHub Action to create/update a diagram and open or update a pull request.
 
-Configuration and types
-- ConfigManager (src/ConfigManager.ts|.js): Merges defaults + file (mermaid_generator_config.yaml) + CLI args. Validates constraints (provider/model present, token/temperature ranges, output path). TS flavor includes a colors block and additional LLM instructions. The compiled JS variant shows slightly different defaults (e.g., config path and default max_tokens), which is noteworthy if mixing ts-node and transpiled JS.
-- Types (src/types): Core domain types FileInfo, ProcessingBucket, ProcessingState, LLMResponse, Config, GitHubConfig, CLIArgs. These types unify the pipeline and support serialization of processing state.
+Key layers and responsibilities:
 
-File discovery and token estimation
-- FileDiscovery (src/core/FileDiscovery.ts|.js): Finds candidate files either from an explicit list or by scanning recursively (glob) or non-recursively (fs.readdir). Applies exclude patterns robustly (wildcards and directories, Windows-safe). Loads content and estimates tokens.
-- TokenCalculator (src/core/TokenCalculator.ts|.js): Provides a more nuanced token estimate than 1 token ≈ 4 chars by removing comments/empty lines, counting word-length-derived tokens, and adding minor weight for punctuation. Also offers density adjustments per extension, prompt/message token estimation, and a recalculation helper.
+1) CLI Orchestration (core)
+- src/cli.ts coordinates the end-to-end workflow: parses CLI args, loads/validates configuration, discovers files, tokenizes and splits large files, creates token-aware buckets, initializes the LLM client and output generator, processes buckets, writes the Mermaid diagram, and persists processing state.
+- Uses: ConfigManager, FileDiscovery, BucketManager, OpenAIClient (via the LLMInterface abstraction), MermaidGenerator, and StateManager. It can optionally integrate with GitHub via GitHubActionHandler (out-of-band to the CLI flow).
 
-Bucketing and safeguards
-- BucketManager (src/core/BucketManager.ts|.js): Packs FileInfo into ProcessingBuckets respecting soft thresholds and a hard limit. It sorts files by estimated tokens for better packing, decides when a bucket is ready/at capacity, computes utilization, merges/splits buckets, and produces statistics. It tracks and reports skipped files that exceed hard limits, and can split a single oversized file into labeled “Part N” chunks to stay within context windows. Note: there is a hard limit variance between TS (100k) and JS (400k) builds; ensure runtime aligns with your chosen model/context window.
+2) Configuration subsystem (config)
+- ConfigManager (src/ConfigManager.ts, plus compiled JS variant) loads YAML configuration, merges it with CLI arguments, exposes defaults and getters, and validates constraints (e.g., file_types non-empty, llm provider/model present, max_tokens > 0, temperature in [0,2], output path provided). It also supports saving and generating sample configs. The TS default config includes colors and additional_instructions fields; the bundled YAML (mermaid_generator_config.yaml) demonstrates standard defaults and color scheme.
+- Note: There are differences between TS and compiled JS defaults (e.g., include_summary true vs false; llm.max_tokens and model values differ across TS/JS). Ensure your build artifacts align with the TypeScript sources to avoid mismatches at runtime.
 
-LLM abstraction and OpenAI provider
-- LLMInterface (src/llm/LLMInterface.ts|.js): Defines the provider contract (processBucket, generateSummary, generateMermaid, validateConnection, estimateCost) and shared utilities: structured system/user prompts, response parsing (JSON-first fallback to text), and Mermaid cleaning. The TS version embeds color scheme guidance and strict GitHub Mermaid compatibility rules (no arrow labels like -->|label|, escape special characters, wrap labels with special chars in double quotes, supported diagram types only).
-- OpenAIClient (src/llm/OpenAIClient.ts): Strategy/Adapter implementing LLMInterface. It switches between Chat Completions API for most models and Responses API for gpt-5. It builds prompts, handles token/temperature, cleans/sanitizes Mermaid, returns tokens used, validates connection (model listing), estimates cost based on model pricing, lists available GPT models, and runs test connections. Errors are wrapped consistently for diagnostics.
+3) Core processing (core)
+- FileDiscovery scans files using glob (recursive) or directory reads (non-recursive), honors exclude_patterns (including wildcard handling), normalizes Windows paths, and produces FileInfo objects with estimated_tokens (roughly content length/4). It can also filter and sort by size/tokens.
+- TokenCalculator provides a more nuanced estimation: strips comments/empty lines, estimates per-line tokens, applies token-per-char ratios, and exposes density-based adjustments per file extension. It also estimates prompt/message token usage.
+- BucketManager groups FileInfo into ProcessingBuckets under a per-bucket soft limit and a readiness threshold. It tracks a hardLimit safety cap, marks files exceeding the hard limit as skipped, and supports:
+  - createBuckets: greedy packing by descending token estimate; respects threshold and hardLimit.
+  - isBucketReady/isBucketAtCapacity/getBucketUtilization.
+  - add/remove file operations.
+  - splitBucket for over-capacity buckets; mergeBuckets when within limits.
+  - optimizeBuckets: splits overutilized buckets and merges underutilized ones where feasible.
+  - processFilesWithSplitting: splits very large files into line-based chunks with recalculated token estimates to stay within hard limits.
+- Important note: The TS implementation uses hardLimit=100k, while the compiled JS sets hardLimit=400k. This discrepancy can alter bucketing, skipped-files behavior, and splitting. Align the build to avoid inconsistent behavior.
 
-Output pipeline and state
-- MermaidGenerator (src/output/MermaidGenerator.ts, described in prior context): Coordinates bucket-by-bucket analysis, accumulates summaries, sanitizes and merges Mermaid fragments into a single GitHub-compatible diagram, validates basic Mermaid structure, and writes the final .mermaid file.
-- StateManager (src/output/StateManager.ts): Persists ProcessingState to a JSON file to support resumability/checkpoints. It merges summaries/diagrams across buckets, provides progress metrics, and can write/load a checkpoint with bucket metadata.
+4) LLM integration (llm)
+- LLMInterface defines the strategy interface for providers and centralizes prompt construction, response parsing, and Mermaid cleanup. It embeds strong instructions for GitHub-compatible Mermaid syntax (no edge labels, only supported diagram types, quote/escape special chars, bracket/parenthesis balance checks). It also carries a configurable color scheme and additional_instructions.
+- OpenAIClient (provider implementation) uses the OpenAI SDK (Chat Completions/Responses APIs) to:
+  - processBucket: return {summary, mermaid_content, tokens_used}.
+  - generateSummary and generateMermaid for separate phases.
+  - mergeOrRepairMermaid: merge or repair fragments into a single GitHub-compatible diagram.
+  - validateConnection/getAvailableModels/testConnection and estimateCost.
 
-GitHub integration
-- GitHubClient (src/github/GitHubClient.ts): Thin Octokit wrapper for repo queries, branch management, file create/update (base64), PR create/update, labeling, and commenting.
-- GitHubActionHandler: Wires GitHubClient with the core pipeline. Workflow: test connection → get repo info → ensure branch → optionally load existing Mermaid from target branch → run the analysis pipeline → create/update the diagram file on the branch → create or update a PR and comment.
+5) Output and rendering (output)
+- MermaidGenerator coordinates per-bucket processing with the LLM and accumulates summaries and diagram fragments. It defers final diagram merge/repair to the LLM’s mergeOrRepairMermaid, then sanitizes for GitHub compatibility:
+  - Removes unsupported edge labels, quotes labels with spaces/special characters, escapes &, <, >, and normalizes line breaks.
+  - validateMermaidSyntax performs basic checks (type presence, bracket/parenthesis balance).
+  - Writes the final diagram to the configured file path and optionally appends a summary and skipped-files list as an HTML comment block.
+- StateManager persists processing state (JSON file), tracks progress, and can create/load checkpoints with minimal file metadata to resume/inspect runs.
 
-Data and control flow
-1) Configuration: CLI args → ConfigManager (merge defaults + YAML + args) → validation → colors/instructions passed into LLMInterface.
-2) Discovery and tokenization: FileDiscovery loads and estimates tokens → TokenCalculator can refine estimations.
-3) Bucketing: BucketManager builds ProcessingBucket[] with capacity and hard-limit guards, tracks skipped files and optionally splits large files.
-4) Analysis: MermaidGenerator iterates buckets, calling LLMInterface.processBucket (OpenAIClient) → returns summary + GitHub-safe Mermaid fragment + usage stats.
-5) Merging and output: MermaidGenerator merges and sanitizes content, validates basic syntax, and writes repo.mermaid. StateManager persists progress; GitHubActionHandler may commit and PR the artifact.
+6) GitHub integration (output/integration)
+- GitHubClient wraps Octokit for repository operations: create branch, check branch existence, CRUD file contents, list PRs/commits/files, add labels/comments, and test connectivity.
+- GitHubActionHandler orchestrates a full action workflow: tests GitHub connection, ensures a target branch, fetches existing Mermaid content, runs the same code-processing pipeline (FileDiscovery → BucketManager → OpenAIClient → MermaidGenerator), writes the diagram to the repo, and creates or updates a PR with labels and status comments.
 
-Design patterns and decisions
-- Strategy/Adapter for LLM providers; orchestration/pipeline for processing; defensive engineering for token windows (thresholds, splitting, skipped files); sanitization for GitHub Mermaid compatibility; state persistence for robustness; CI integration via Octokit abstraction.
+7) Tests (tests)
+- Unit tests cover: ConfigManager, FileDiscovery, TokenCalculator, LLMInterface interface behavior, and OpenAIClient interactions. Integration tests scaffold a mini TypeScript project, run the CLI via ts-node, and verify diagram generation and syntax validation under different scenarios (full run, empty dir handling, specific file lists, dry-run behavior). Tests also mock OpenAI and filesystem/glob for isolation.
 
-Tests
-- Unit tests cover ConfigManager load/merge/validate/save, FileDiscovery (specific, recursive, non-recursive, error handling), TokenCalculator estimation APIs, LLMInterface utilities, and OpenAIClient behavior (success/empty/error, validate/model list/cost/test connection).
-- Integration tests construct a small repo, invoke the CLI via ts-node, and assert generation of a Mermaid diagram, with variants for empty directory and specific file subsets.
+Design patterns and decisions:
+- Strategy/Adapter for LLM providers via LLMInterface; OpenAIClient adapts SDK differences and provides cost/model utilities.
+- Orchestration pattern in the CLI and GitHubActionHandler to coordinate subsystems.
+- Token-aware batching with safety hard limits and optimization passes to scale across large repos and avoid API failures.
+- Defensive Mermaid handling (sanitize/validate) aimed at GitHub’s stricter Mermaid support.
+- Separation of concerns across discovery, estimation, bucketing, LLM interaction, output generation, state persistence, and GitHub publishing.
 
-Notable considerations
-- Keep the TS vs JS config defaults aligned (config path, llm.max_tokens, hard limits) to avoid surprising behavior across ts-node vs transpiled runs.
-- For GitHub rendering, adhere to Mermaid restrictions: avoid edge labels like -->|label|, quote labels with special characters, and ensure diagram types and parentheses/brackets are valid.
+Data flow summary:
+- CLI loads/merges/validates config → FileDiscovery loads files → TokenCalculator estimates tokens → BucketManager splits/optimizes buckets (and large files) → MermaidGenerator processes each bucket via OpenAIClient, accumulates fragments/summaries → LLM merge/repair and local sanitize/validate → file written and state saved → optionally GitHubActionHandler commits and PRs the diagram.
 
 
 Processing Statistics:
 - Total files processed: 42
 - Total buckets: 2
-- Generated on: 2025-10-05T04:05:36.588Z
+- Generated on: 2025-10-05T15:14:34.492Z
 
 -->
