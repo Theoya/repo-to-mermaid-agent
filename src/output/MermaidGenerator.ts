@@ -87,36 +87,79 @@ export class MermaidGenerator {
   }
 
   /**
-   * Sanitize Mermaid content to fix common syntax issues
+   * Sanitize Mermaid content to fix common syntax issues for GitHub compatibility
    */
   private sanitizeMermaidContent(content: string): string {
     return content
-      // Fix node labels with special characters
-      .replace(/(\w+)\{([^}]*[><=]+[^}]*)\}/g, (_match, nodeId, label) => {
-        // Escape special characters in decision node labels
+      // Fix invalid arrow syntax with labels (GitHub doesn't support -->|label| syntax)
+      .replace(/-->\|([^|]*)\|/g, '-->')
+      .replace(/--\|([^|]*)\|-->/g, '-->')
+      
+      // Fix node labels with special characters - wrap in quotes for safety
+      .replace(/(\w+)\{([^}]*[><=#+\-&]+[^}]*)\}/g, (_match, nodeId, label) => {
+        // Escape special characters and wrap in quotes
         const escapedLabel = label
+          .replace(/&/g, '&amp;')
           .replace(/>/g, '&gt;')
           .replace(/</g, '&lt;')
-          .replace(/=/g, '&equals;');
-        return `${nodeId}{${escapedLabel}}`;
+          .replace(/=/g, '&equals;')
+          .replace(/#/g, '&num;')
+          .replace(/\+/g, '&plus;')
+          .replace(/\-/g, '&minus;');
+        return `${nodeId}{"${escapedLabel}"}`;
       })
-      // Fix node labels with special characters in square brackets
-      .replace(/(\w+)\[([^\]]*[><=]+[^\]]*)\]/g, (_match, nodeId, label) => {
+      
+      // Fix node labels with special characters in square brackets - wrap in quotes
+      .replace(/(\w+)\[([^\]]*[><=#+\-&]+[^\]]*)\]/g, (_match, nodeId, label) => {
         const escapedLabel = label
+          .replace(/&/g, '&amp;')
           .replace(/>/g, '&gt;')
           .replace(/</g, '&lt;')
-          .replace(/=/g, '&equals;');
-        return `${nodeId}[${escapedLabel}]`;
+          .replace(/=/g, '&equals;')
+          .replace(/#/g, '&num;')
+          .replace(/\+/g, '&plus;')
+          .replace(/\-/g, '&minus;');
+        return `${nodeId}["${escapedLabel}"]`;
       })
-      // Fix connection labels with special characters
-      .replace(/--\s*"([^"]*[><=]+[^"]*)"\s*-->/g, (_match, label) => {
+      
+      // Fix connection labels with special characters - ensure proper quoting
+      .replace(/--\s*"([^"]*[><=#+\-&]+[^"]*)"\s*-->/g, (_match, label) => {
         const escapedLabel = label
+          .replace(/&/g, '&amp;')
           .replace(/>/g, '&gt;')
           .replace(/</g, '&lt;')
-          .replace(/=/g, '&equals;');
+          .replace(/=/g, '&equals;')
+          .replace(/#/g, '&num;')
+          .replace(/\+/g, '&plus;')
+          .replace(/\-/g, '&minus;');
         return `-- "${escapedLabel}" -->`;
-      });
+      })
+      
+      // Remove any remaining invalid syntax patterns
+      .replace(/-->\|/g, '-->')
+      .replace(/\|-->/g, '-->')
+      
+      // Ensure all node labels with spaces or special chars are quoted
+      .replace(/(\w+)\[([^\[\]]*[^\[\]"]+[^\[\]]*)\]/g, (match, nodeId, label) => {
+        if (!label.startsWith('"') && !label.endsWith('"')) {
+          return `${nodeId}["${label}"]`;
+        }
+        return match;
+      })
+      
+      // Fix double quotes in node labels
+      .replace(/\[""([^"]+)""\]/g, '["$1"]')
+      .replace(/\{""([^"]+)""\}/g, '{"$1"}')
+      
+      // Fix incomplete connections (nodes without proper targets)
+      .replace(/(\w+)\[([^\]]*)\]\s*--\s*(\w+)(?!\[)/g, '$1["$2"] --> $3')
+      .replace(/(\w+)\s*--\s*(\w+)\[([^\]]*)\](?!\s*-->)/g, '$1 --> $2["$3"]')
+      
+      // Final cleanup: ensure proper line endings and remove any trailing issues
+      .replace(/\s+$/gm, '') // Remove trailing whitespace
+      .replace(/\n{3,}/g, '\n\n'); // Normalize multiple newlines
   }
+
 
   /**
    * Build final Mermaid content
@@ -128,7 +171,15 @@ export class MermaidGenerator {
     let content = '';
 
     // Start with the Mermaid diagram first (for GitHub compatibility)
-    content += this.sanitizeMermaidContent(state.accumulated_mermaid);
+    const sanitizedMermaid = this.sanitizeMermaidContent(state.accumulated_mermaid);
+    content += sanitizedMermaid;
+    
+    // Validate the sanitized content
+    const validation = this.validateMermaidSyntax(sanitizedMermaid);
+    if (!validation.valid) {
+      console.warn('Warning: Generated Mermaid may have syntax issues:');
+      validation.errors.forEach(error => console.warn(`  - ${error}`));
+    }
 
     // Add metadata as comments at the end
     if (this.includeSummary && state.accumulated_summary) {

@@ -125,6 +125,14 @@ For Mermaid diagrams, use colors and styling to enhance readability:
   classDef llm fill:${this.colors.llm},stroke:#ffffff,stroke-width:2px
   classDef output fill:${this.colors.output},stroke:#ffffff,stroke-width:2px
 
+CRITICAL: GitHub Mermaid Syntax Requirements:
+- NEVER use arrow syntax with labels like -->|label| or --|label|--> (GitHub doesn't support this)
+- Use simple arrows: --> for connections, -- for dashed connections
+- Wrap ALL node labels containing special characters in double quotes: Node["Label with spaces & symbols"]
+- Escape special characters in labels: > becomes &gt;, < becomes &lt;, & becomes &amp;
+- Use only supported Mermaid diagram types: flowchart, graph, sequenceDiagram, classDiagram, stateDiagram, erDiagram
+- Ensure all brackets and parentheses are properly balanced
+
 Your responses should be professional, accurate, and focused on the technical architecture rather than implementation details.${this.additionalInstructions ? `\n\nAdditional Instructions:\n${this.additionalInstructions}` : ''}`;
   }
 

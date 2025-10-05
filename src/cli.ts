@@ -175,7 +175,7 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
 
     // Generate final Mermaid file
     spinner.text = 'Generating final Mermaid file...';
-    const finalContent = await mermaidGenerator.generateFinalMermaidFile(state, skippedFiles);
+    await mermaidGenerator.generateFinalMermaidFile(state, skippedFiles);
 
     // Save state
     await stateManager.saveState(state);
@@ -189,12 +189,7 @@ async function runMermaidGenerator(directory: string, options: any): Promise<voi
     console.log(`  Completion: ${Math.round(processingStats.completionPercentage)}%`);
     console.log(`  Output file: ${config.output.file_path}`);
 
-    // Validate generated Mermaid
-    const mermaidValidation = mermaidGenerator.validateMermaidSyntax(finalContent);
-    if (!mermaidValidation.valid) {
-      console.warn(chalk.yellow('Warning: Generated Mermaid may have syntax issues:'));
-      mermaidValidation.errors.forEach(error => console.warn(`  - ${error}`));
-    }
+    // Mermaid validation is handled within MermaidGenerator
 
     // GitHub integration (if configured)
     if (args.githubToken && args.githubOwner && args.githubRepo) {
